@@ -48,15 +48,7 @@ fn main() {
     menu.set_label_color(Color::White);
     menu.set_color(Color::from_hex(0x42A5F5));
     menu.set_selection_color( Color::from_hex(0x2196F3));
-    menu.set_callback(move |m| match m.choice().unwrap().as_str() {
-    	"vegetaux" => {println!("delicieux")},
-    	"Homme" => {res.set_label("Non")},
-    	"Femme" => {res.set_label("Oui")},
-    	"Bleus" => {res.set_label("Non")},
-    	"Samuel" => {res.set_label("Oui")},
-    	"Léon" => {res.set_label("Non")},
-    	x => println!("{}", x),
-    });
+    
     
     wind.make_resizable(false);
     wind.end();
@@ -68,5 +60,15 @@ fn main() {
     	//rb[n].set_callback( move |_| x.activate());
     	n+=1;
     }
+    
+    menu.set_callback(move |m| wind.set_label(&(m.choice().unwrap() + ": " + match m.choice().unwrap().as_str() { //ou res
+    	"vegetaux" => "delicieux",
+    	"Homme" => "Non",
+    	"Femme" |"Samuel" => "Oui",
+    	"Bleus" => "Non",
+    	"Léon" => "Non",
+    	x => x,
+    })));
+    
     app.run().unwrap();
 }
