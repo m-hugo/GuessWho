@@ -21,7 +21,6 @@ pub enum Message {
 }
 
 fn main() {
-    let mut wind = Window::default().with_size(89 * 6, 170 * 4 + 20);
     let a = app::App::default(); //.with_scheme(app::Scheme::Plastic);
     app::background(226, 208, 177);
     //res.set_color(Color::Red); marche pas utiliser app::background(255, 100, 100); mais rouge sous bouttons
