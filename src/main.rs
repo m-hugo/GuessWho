@@ -1,21 +1,33 @@
 #![allow(unused_imports)]
 #![allow(deprecated)]
 
-use fltk::{app, image, menu, button::Button, frame::Frame, prelude::*, window::Window, enums::{Align, Color, Font, FrameType},};
+use fltk::{app, image, menu, button::Button, frame::Frame, prelude::*, window::Window, enums::{Align, Color, Font, FrameType, Shortcut},};
 use fltk_theme::{WidgetScheme, SchemeType};
 use fltk_theme::{ColorTheme, color_themes};
 
+#[derive(Clone, Copy)]
+pub enum Message {
+    File(&'static str),
+    Question(&'static str, &'static str),
+    Switch(usize),
+}
+
 fn main() {
-    let app = app::App::default();//.with_scheme(app::Scheme::Plastic);
-    //let widget_scheme = WidgetScheme::new(SchemeType::Aqua);
-    //widget_scheme.apply();
-    //let theme = ColorTheme::new(color_themes::SHAKE_THEME);
-	//theme.apply();
-    let mut wind = Window::default().with_size(89*6, 170*4+20);
-    
+    let a = app::App::default();
+    app::background(226, 208, 177); //res.set_color(Color::Red); marche pas utiliser app::background(255, 100, 100); mais rouge sous bouttons
+    //app::set_font_size(20);
+	
+	let (s, r) = app::channel::<Message>();
+    //let (s2, r2) = app::channel::<Message>();
+	
+	let mut wind = Window::default().with_size(89*6, 170*4+20).center_screen().with_label("Click droit pour commencer");
+	
 	let mut frame: [Frame; 24]= unsafe { ::std::mem::uninitialized() };
+	
 	let mut b: [Button; 24]= unsafe { ::std::mem::uninitialized() };
+	
 	//let mut rb: [Button; 24]= unsafe { ::std::mem::uninitialized() };
+	
 	let mut n:usize=0;
 	for j in 0..4 {
 		for i in 0..6 {
@@ -27,48 +39,79 @@ fn main() {
 			//frame[n].draw(move |f| {image::PngImage::load(format!("/home/hugo/Downloads/Exemples dimages-20220117/personnages/imageonline-co-split-image-{}.png", n+1)).unwrap().draw(f.x(), f.y(), f.w(), f.h());});
 			b[n] = Button::new(90*i+2, 170*j+148, 89, 20, "Renverse");
 			b[n].set_color(Color::from_hex(0x42A5F5));
+			b[n].emit(s, Message::Switch(n));
 			//b[n] = Button::new(90*i+3, 170*j+149, 80, 20, "Renverse");
 			//rb[n] = Button::new(90*i+83, 170*j+149, 9, 20, "↻");
 			n+=1;
     	}
     }
+	
     let mut res = Frame::new(0, 170*4, 89*6, 20, None);
-    //res.set_color(Color::Red); marche pas utiliser app::background(255, 100, 100); mais rouge sous bouttons
-    app::background(226, 208, 177);
     res.set_label_color(Color::Red);
-    
     
     let mut menu = menu::MenuButton::default()
         .size_of(&wind)
         .center_of(&wind)
         .with_type(menu::MenuButtonType::Popup3);
-    //menu.set_color(Color::from_hex(0xFFFFFF));
-    menu.add_choice("Charge Fichier/Animaux|Charge Fichier/vegetaux|Question/Nom/Samuel|Question/Nom/Léon|Question/Sexe/Homme|Question/Sexe/Femme|Question/Yeux/Bleus|3rd menu item"
-    );
     menu.set_label_color(Color::White);
     menu.set_color(Color::from_hex(0x42A5F5));
-    menu.set_selection_color( Color::from_hex(0x2196F3));
+    menu.set_selection_color(Color::from_hex(0x2196F3));
     
-    
-    wind.make_resizable(false);
+    menu.add_emit(
+    	"Charge Fichier/Juste Léon",
+    	Shortcut::None,
+		menu::MenuFlag::Normal,
+		s,
+		Message::File("Juste Léon"),
+	);
+	menu.add_emit(
+    	"Charge Fichier/Sam & Léons",
+    	Shortcut::None,
+		menu::MenuFlag::Normal,
+		s,
+		Message::File("Sam & Léons"),
+	);
+	menu.add_emit(
+    	"Question/Nom/Samuel",
+    	Shortcut::None,
+		menu::MenuFlag::Normal,
+		s,
+		Message::Question("Nom","Samuel"),
+	);
+
+	wind.make_resizable(false);
     wind.end();
     wind.show();
-    
-    let mut n:usize=0;
-    for mut x in frame {
-    	b[n].set_callback( move |_| if x.active() {x.deactivate()} else {x.activate()});
-    	//rb[n].set_callback( move |_| x.activate());
-    	n+=1;
-    }
-    
-    menu.set_callback(move |m| wind.set_label(&(m.choice().unwrap() + ": " + match m.choice().unwrap().as_str() { //ou res
-    	"vegetaux" => "delicieux",
-    	"Homme" => "Non",
-    	"Femme" |"Samuel" => "Oui",
-    	"Bleus" => "Non",
-    	"Léon" => "Non",
-    	x => x,
-    })));
-    
-    app.run().unwrap();
+
+	while a.wait() {
+            use Message::*;
+            if let Some(msg) = r.recv() {
+                match msg {
+                	File(txt) => {}
+                	Question(cat, txt) =>{
+		            	res.set_label(&(cat.to_owned() +" est "+ txt+ " ? " + match txt {
+				        	"vegetaux" => "delicieux",
+							"Homme" => "Non",
+							"Femme" |"Samuel" => "Oui",
+							"Bleus" => "Non",
+							"Léon" => "Non",
+							x => x,
+                		}))
+                	}
+                	Message::Switch(n) =>{if frame[n].active() {frame[n].deactivate()} else {frame[n].activate()}}
+                }
+            }
+	}
 }
+/*
+    while a.wait() {
+
+        m.clear_submenu(m.find_index("Question"));//find_item("Question").unwrap().add("C");
+		 m.add("Question/Léon", enums::Shortcut::None,
+        menu::MenuFlag::Normal, |_| ());
+        },
+
+        
+    }
+*/
+
