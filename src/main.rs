@@ -12,6 +12,7 @@ use fltk::{
 };
 use fltk_theme::{color_themes, ColorTheme};
 use fltk_theme::{SchemeType, WidgetScheme};
+ 
 
 #[derive(Clone, Copy)]
 pub enum Message {
@@ -114,7 +115,7 @@ fn main() {
         use Message::*;
         if let Some(msg) = r.recv() {
             match msg {
-                File(txt) => {}
+                File(_txt) => {}
                 Question(cat, txt) => res.set_label(
                     &(cat.to_owned()
                         + " est "

@@ -1,0 +1,31 @@
+{"personnages" : [
+    {"nom":"Samuel", "genre" :"defaut", "couleurCheveux":"defaut","image" : "1"}
+    ,{"nom":"Léon", "genre" :"defaut", "couleurCheveux":"defaut", "image" : "2"}
+    ,{"nom":"Simon", "genre" :"defaut", "couleurCheveux":"defaut", "image" : "3"}
+    ,{"nom":"Martin", "genre" :"defaut", "couleurCheveux":"defaut", "image" : "4"}
+    ,{"nom":"Luc", "genre" :"defaut", "couleurCheveux":"defaut", "image" : "5"}
+    ,{"nom":"Clara", "genre" :"defaut", "couleurCheveux":"defaut", "image" : "6"}
+    ,{"nom":"Anita", "genre" :"defaut", "couleurCheveux":"defaut", "image" : "7"}
+    ,{"nom":"Alfred", "genre" :"defaut", "couleurCheveux":"defaut", "image" : "8"}
+    ,{"nom":"Suzane", "genre" :"defaut", "couleurCheveux":"defaut", "image" : "9"}
+    ,{"nom":"Roméo", "genre" :"defaut", "couleurCheveux":"defaut", "image" : "10"}
+    ,{"nom":"Omar", "genre" :"defaut", "couleurCheveux":"defaut", "image" : "11"}
+    ,{"nom":"Manu", "genre" :"defaut", "couleurCheveux":"defaut", "image" : "12"}
+    ,{"nom":"Lucas", "genre" :"defaut", "couleurCheveux":"defaut", "image" : "13"}
+    ,{"nom":"Mario", "genre" :"defaut", "couleurCheveux":"defaut", "image" : "14"}
+    ,{"nom":"Jérémie", "genre" :"defaut", "couleurCheveux":"defaut", "image" : "15"}
+    ,{"nom":"Max", "genre" :"defaut", "couleurCheveux":"defaut", "image" : "16"}
+    ,{"nom":"Timéo", "genre" :"defaut", "couleurCheveux":"defaut", "image" : "17"}
+    ,{"nom":"Oscar", "genre" :"defaut", "couleurCheveux":"defaut", "image" : "18"}
+    ,{"nom":"Eric", "genre" :"defaut", "couleurCheveux":"defaut", "image" : "19"}
+    ,{"nom":"Maria", "genre" :"defaut", "couleurCheveux":"defaut", "image" : "20"}
+    ,{"nom":"Tony", "genre" :"defaut", "couleurCheveux":"defaut", "image" : "21"}
+    ,{"nom":"Félix", "genre" :"defaut", "couleurCheveux":"defaut", "image" : "22"}
+    ,{"nom":"Charlie", "genre" :"defaut", "couleurCheveux":"defaut", "image" : "23"}
+    ,{"nom":"Anna", "genre" :"defaut", "couleurCheveux":"defaut", "image" : "24"}
+
+
+    
+    
+
+] }
