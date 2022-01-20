@@ -1,24 +1,82 @@
-#![allow(unused_imports)]
+//#![allow(unused_imports)]
 #![allow(deprecated)]
-
+//mod parsing;
+use fltk::app::Sender;
 use fltk::{
     app,
     button::Button,
-    enums::{Align, Color, Font, FrameType, Shortcut},
+    enums::{Color, Shortcut},
     frame::Frame,
     image, menu,
     prelude::*,
     window::Window,
 };
-use fltk_theme::{color_themes, ColorTheme};
-use fltk_theme::{SchemeType, WidgetScheme};
- 
+//use fltk_theme::{color_themes, ColorTheme};
+//use fltk_theme::{SchemeType, WidgetScheme};
+
+use std::fs;
+use std::io;
+
+use rand::Rng;
+
+use serde_json::Value;
 
 #[derive(Clone, Copy)]
 pub enum Message {
     File(&'static str),
     Question(&'static str, &'static str),
     Switch(usize),
+    TxtError(&'static str),
+    //TrueError(Box<dyn std::error::Error>),
+}
+
+fn loadfile(
+    frame: &mut [Frame; 24],
+    txt: &'static str,
+) -> Result<Value, Box<dyn std::error::Error>> {
+    let file = fs::File::open(txt)?; //txt
+    let reader = io::BufReader::new(file);
+    let v: Value = serde_json::from_reader(reader)?;
+    for n in 0..24 {
+        if let Some(vv) = v["liste"][n]["image"].as_str() {
+            //println!("{}", vv);
+            frame[n].set_image(Some(image::PngImage::load(vv.to_string())?));
+            let mut im = image::PngImage::load(vv.to_string())?;
+            im.inactive();
+            frame[n].set_deimage(Some(im));
+            frame[n].redraw();
+        }
+    }
+    Ok(v)
+}
+fn loadquestions(
+    menu: &mut menu::MenuButton,
+    s: Sender<Message>,
+    v: Value,
+) -> std::option::Option<()> {
+    let _ = menu.clear_submenu(menu.find_index("Question"));
+    //println!("{}", v["attrs"]);
+    for x in v["attrs"].as_object()? {
+        //"Question/Nom/Samuel"
+        //println!("{}", x.1);
+        for y in x.1.as_array()? {
+            menu.add_emit(
+                &("Question/".to_owned() + x.0 + "/" + &y.as_str()?.to_owned()),
+                Shortcut::None,
+                menu::MenuFlag::Normal,
+                s,
+                Message::Question(
+                    Box::leak(x.0.to_string().into_boxed_str()),
+                    Box::leak(y.as_str()?.to_string().into_boxed_str()),
+                ),
+            );
+        }
+    }
+    let linoms = v["attrs"]["nom"].as_array()?;
+    println!("{}", linoms[rand::thread_rng().gen_range(0..linoms.len())]);
+    //Nom d'un personnage choisi au hasard
+
+    Some(())
 }
 
 fn main() {
@@ -50,20 +108,6 @@ fn main() {
     for j in 0..4 {
         for i in 0..6 {
             frame[n] = Frame::new(90 * i, 170 * j, 89, 146, None);
-            frame[n].set_image(Some(
-                image::PngImage::load(format!(
-                    "./src/personnages/imageonline-co-split-image-{}.png",
-                    n + 1
-                ))
-                .unwrap(),
-            ));
-            let mut im = image::PngImage::load(format!(
-                "./src/personnages/imageonline-co-split-image-{}.png",
-                n + 1
-            ))
-            .unwrap();
-            im.inactive();
-            frame[n].set_deimage(Some(im));
             //frame[n].draw(move |f| {image::PngImage::load(format!("/home/hugo/Downloads/Exemples dimages-20220117/personnages/imageonline-co-split-image-{}.png", n+1)).unwrap().draw(f.x(), f.y(), f.w(), f.h());});
             b[n] = Button::new(90 * i + 2, 170 * j + 148, 89, 20, "Renverse");
             b[n].set_color(Color::from_hex(0x42A5F5));
@@ -85,27 +129,23 @@ fn main() {
     menu.set_color(Color::from_hex(0x42A5F5));
     menu.set_selection_color(Color::from_hex(0x2196F3));
 
-    menu.add_emit(
-        "Charge Fichier/Juste Léon",
-        Shortcut::None,
-        menu::MenuFlag::Normal,
-        s,
-        Message::File("Juste Léon"),
-    );
-    menu.add_emit(
-        "Charge Fichier/Sam & Léons",
-        Shortcut::None,
-        menu::MenuFlag::Normal,
-        s,
-        Message::File("Sam & Léons"),
-    );
-    menu.add_emit(
-        "Question/Nom/Samuel",
-        Shortcut::None,
-        menu::MenuFlag::Normal,
-        s,
-        Message::Question("Nom", "Samuel"),
-    );
+    for file in fs::read_dir("./").unwrap() {
+        let u = file.as_ref().unwrap().file_name();
+        if u.to_str().unwrap().contains('.') {
+            //println!("{}", u.to_str().unwrap());
+            //println!("{}", u.to_str().unwrap().split(".").nth(1).unwrap());
+            if u.to_str().unwrap().split('.').nth(1).unwrap() == "json" {
+                let x = Box::leak(u.into_string().unwrap().into_boxed_str());
+                menu.add_emit(
+                    &("Charge Fichier/".to_owned() + x),
+                    Shortcut::None,
+                    menu::MenuFlag::Normal,
+                    s,
+                    Message::File(x),
+                );
+            }
+        }
+    }
 
     wind.make_resizable(false);
     wind.end();
@@ -115,7 +155,18 @@ fn main() {
         use Message::*;
         if let Some(msg) = r.recv() {
             match msg {
-                File(_txt) => {}
+                File(txt) => {
+                    match loadfile(&mut frame, txt) {
+                        Err(e) => {
+                            s.send(Message::TxtError(Box::leak(e.to_string().into_boxed_str())));
+                        }
+                        Ok(v) => {
+                            if loadquestions(&mut menu, s, v).is_none() {
+                                s.send(Message::TxtError("json incorrect")); //
+                            }
+                        }
+                    }
+                }
                 Question(cat, txt) => res.set_label(
                     &(cat.to_owned()
                         + " est "
@@ -130,15 +181,24 @@ fn main() {
                             x => x,
                         }),
                 ),
-                Message::Switch(n) => {
+                Switch(n) => {
                     if frame[n].active() {
                         frame[n].deactivate()
                     } else {
                         frame[n].activate()
                     }
                 }
+                TxtError(txt) => {
+                    res.set_label(txt);
+                    //app::background(255, 100, 100);
+                    //app::redraw();
+                    //thread::sleep(time::Duration::from_secs(5));//let _=app::wait_for(5.0);//thread::wait(time::Duration::from_secs(5));
+                    //app::background(226, 208, 177);
+                    //app::redraw();
+                } /*TrueError(e) => {
+                      res.set_label(e.to_string());
+                  }*/
             }
         }
     }
 }
-

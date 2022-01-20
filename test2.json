@@ -1,0 +1,13 @@
+{
+	"Samuel":{
+	  "id": 0,
+	  "image": "imageonline-co-split-image-1.png",
+	  "cheveux": false
+	},
+	"Léon":{
+	  "id": 1,
+	  "image": "imageonline-co-split-image-2.png",
+	  "cheveux": true
+	},
+}
+
