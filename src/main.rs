@@ -24,7 +24,7 @@ use serde_json::Value;
 #[derive(Clone, Copy)]
 pub enum Message {
     File(&'static str),
-    Question(&'static str, &'static str),
+    Question(&'static str, &'static str, &'static str),
     Switch(usize),
     TxtError(&'static str),
     //TrueError(Box<dyn std::error::Error>),
@@ -54,6 +54,16 @@ fn loadquestions(
     s: Sender<Message>,
     v: Value,
 ) -> std::option::Option<()> {
+    //let linoms = v["attrs"]["nom"].as_array()?;
+    //let nom = linoms[rand::thread_rng().gen_range(0..linoms.len())];
+    //println!("{}", nom);
+    //Nom d'un personnage choisi au hasard
+
+    let linoms = v["attrs"]["nom"].as_array()?;
+    let id = rand::thread_rng().gen_range(0..linoms.len());
+    let perso = &v["liste"].as_array()?[id];
+    //println!("{}", perso);
+
     let _ = menu.clear_submenu(menu.find_index("Question"));
     //println!("{}", v["attrs"]);
     for x in v["attrs"].as_object()? {
@@ -68,13 +78,11 @@ fn loadquestions(
                 Message::Question(
                     Box::leak(x.0.to_string().into_boxed_str()),
                     Box::leak(y.as_str()?.to_string().into_boxed_str()),
+                    Box::leak(perso.to_string().into_boxed_str()),
                 ),
             );
         }
     }
-    let linoms = v["attrs"]["nom"].as_array()?;
-    println!("{}", linoms[rand::thread_rng().gen_range(0..linoms.len())]);
-    //Nom d'un personnage choisi au hasard
 
     Some(())
 }
@@ -167,20 +175,19 @@ fn main() {
                         }
                     }
                 }
-                Question(cat, txt) => res.set_label(
-                    &(cat.to_owned()
-                        + " est "
-                        + txt
-                        + " ? "
-                        + match txt {
-                            "vegetaux" => "delicieux",
-                            "Homme" => "Non",
-                            "Femme" | "Samuel" => "Oui",
-                            "Bleus" => "Non",
-                            "Léon" => "Non",
-                            x => x,
-                        }),
-                ),
+                Question(cat, txt, perso) => {
+                    let g: Value = serde_json::from_str(perso).unwrap();
+                    //g.as_object().unwrap()[txt].as_object().unwrap().1.as_str().unwrap()
+                    //println!("{:?}", txt);
+                    //println!("{:?}", g[cat]==txt);//.as_object().unwrap()
+                    res.set_label(
+                        &(cat.to_owned()
+                            + " est "
+                            + txt
+                            + " ? "
+                            + if g[cat] == txt { "Vrai" } else { "Faux" }),
+                    )
+                }
                 Switch(n) => {
                     if frame[n].active() {
                         frame[n].deactivate()
