@@ -1,31 +1,40 @@
-use serde::{Deserialize};
+use serde_json::{Deserialize};
 //use serde_json::de; 
-use std::{io,fs};
+use std::fs::File;
+use std::error::Error;
+use std::io::BufReader;
 mod parsing {
-    fn fichierPersonnage() -> Result<File> {
-        File::open("personnages/personnages.json")
-    }
-    #[derive(Deserialize)]
+    #[derive(Clone,Deserialize)]
     struct Personnage {
         nom : String
         ,genre : String
         ,couleurCheveux : String 
-        ,image : String 
+        ,numero: String 
     }
-    #[derive(Deserialize)]
+    #[derive(Clone,Deserialize)]
         pub struct Personnages {
             personnages : Vec<Personnages>
         }
+        impl Iterator for Personnages {
+            type Item = Personnage; 
+            fn next(&mut self)->Option<Self::Item>{
+                self.personnages.next()
+
+            }
+        }
+    
         impl Personnages {
-            pub fn parse() -> Result<Self> {
-                match fichierPersonnage() {
-                    Ok(fichier) => serde_json::from_reader(fichier),
-                    Err(err) => Err(err):Result<Self>,
-                }
+            pub fn parse() -> Result<Self,Box<Error>> {
+                let file = File::open("personnages/personnages.json")?;
+                let reader = BufReader::new(file);
+                // Read the JSON contents of the file as an instance of `Personnages`.
+                let persos = serde_json::from_reader(reader)?;
+                // Return the `Personnages`.
+                Ok(persos)
             }
             pub fn liens_images(&self) -> Vec<String> {
-                self.personnages.clone()
-                    .map(|numero| String::from"personnages/imageonline-co-split-image-"
+                self.personnages
+                    .map(|Personnage{numero,..}|numero.clone().insert_str(0,"personnages/imageonline-co-split-image-")
                     .push_str(numero).push_str(".png")
                         )
             }
