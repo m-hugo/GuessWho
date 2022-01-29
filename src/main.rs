@@ -1,6 +1,6 @@
 //#![allow(unused_imports)]
-//cargo clippy -- -W clippy::pedantic -A clippy::many-single-char-names -A clippy::unreadable-literal
-#![allow(deprecated)]
+//cargo clippy -- -W clippy::pedantic -W clippy::nursery -A clippy::many-single-char-names -A clippy::unreadable-literal -A clippy::collapsible-if -A clippy::enum-glob-use -W absolute-paths-not-starting-with-crate -W deprecated-in-future -W elided-lifetimes-in-paths -W explicit-outlives-requirements -W keyword-idents -W macro-use-extern-crate -W meta-variable-misuse -W missing-abi -W missing-copy-implementations  -W non-ascii-idents -W noop-method-call -W pointer-structural-match -W rust-2021-incompatible-closure-captures -W rust-2021-incompatible-or-patterns -W rust-2021-prefixes-incompatible-syntax -W rust-2021-prelude-collisions -W single-use-lifetimes -W trivial-casts -W trivial-numeric-casts -W unreachable-pub -W unsafe-op-in-unsafe-fn -W unused-crate-dependencies -W unused-extern-crates -W unused-import-braces -W unused-lifetimes -W unused-qualifications -W variant-size-differences
+//#![allow(deprecated)]
 //mod parsing;
 use fltk::app::Sender;
 use fltk::{
@@ -8,15 +8,17 @@ use fltk::{
     button::{Button, CheckButton},
     enums::{Color, Shortcut},
     frame::Frame,
-    image, menu,
+    image::PngImage,
+    menu,
     prelude::*,
     window::{OverlayWindow, Window},
 };
+use fltk_theme as _;
 //use fltk_theme::{color_themes, ColorTheme};
 //use fltk_theme::{SchemeType, WidgetScheme};
 
 use std::fs;
-use std::io;
+use std::io::BufReader;
 
 use rand::Rng;
 
@@ -24,13 +26,27 @@ use serde_json::Value;
 
 #[derive(Clone, Copy)]
 pub enum Message {
-    Question(&'static str),
+    Question(usize),
     Switch(usize),
     Valider,
     Poweroff,
     Sauvegarde,
     Change,
     Etale(usize),
+}
+fn getaddrs() -> Vec<Value> {
+    let mut addrs: Vec<Value> = vec![];
+    for file in fs::read_dir("./").unwrap() {
+        let u = file.as_ref().unwrap().file_name();
+        if u.to_str().unwrap().contains('.') {
+            if u.to_str().unwrap().split('.').nth(1).unwrap() == "json" {
+                if let Ok(v) = tryfile(&u.into_string().unwrap()) {
+                    addrs.push(v);
+                }
+            }
+        }
+    }
+    addrs
 }
 
 fn quitter(s: Sender<Message>) {
@@ -68,16 +84,16 @@ fn quitter(s: Sender<Message>) {
     windpop.end();
     windpop.show();
 
-    rester.set_callback(move |_| fltk::prelude::WidgetBase::delete(windpop.clone()));
+    rester.set_callback(move |_| WidgetBase::delete(windpop.clone()));
 }
 
-fn etalepile(frame: &mut [Frame; 24], val: &mut Value, b: &mut [Button; 24]) {
+fn etalepile(frame: &mut Vec<Frame>, val: &mut Value, b: &mut Vec<Button>) {
     for n in 0..24 {
         b[n].show();
         frame[n].show();
         if let Some(vv) = val["liste"][n]["image"].as_str() {
-            frame[n].set_image(Some(image::PngImage::load(vv.to_string()).unwrap()));
-            let mut im = image::PngImage::load(vv.to_string()).unwrap();
+            frame[n].set_image(Some(PngImage::load(vv.to_string()).unwrap())); //deja testé dans showdecks()
+            let mut im = PngImage::load(vv.to_string()).unwrap(); //idem
             im.inactive();
             frame[n].set_deimage(Some(im));
             frame[n].redraw();
@@ -93,13 +109,13 @@ fn toggle(frame: &mut Frame) {
     }
 }
 
-fn hidevec(p: &mut Vec<[impl fltk::prelude::WidgetExt; 24]>) {
+fn hidevec(p: &mut Vec<Vec<impl WidgetExt>>) {
     for k in p {
         hide(k);
     }
 }
 
-fn hide(k: &mut [impl fltk::prelude::WidgetExt; 24]) {
+fn hide(k: &mut Vec<impl WidgetExt>) {
     for fr in k {
         fr.hide();
     }
@@ -107,7 +123,7 @@ fn hide(k: &mut [impl fltk::prelude::WidgetExt; 24]) {
 
 fn tryfile(f: &str) -> Result<Value, Box<dyn std::error::Error>> {
     let file = fs::File::open(f)?; //txt
-    let reader = io::BufReader::new(file);
+    let reader = BufReader::new(file);
     let v: Value = serde_json::from_reader(reader)?;
     Ok(v)
 }
@@ -125,13 +141,13 @@ fn fnerror(e: &'static str) {
 }
 
 fn showdecks(
-    piles: &mut Vec<[Button; 24]>,
+    piles: &mut Vec<Vec<Button>>,
     addr: &[Value],
 ) -> Result<(), Box<dyn std::error::Error>> {
     for k in 0..addr.len() {
         for n in 0..24 {
             if let Some(vv) = addr[k]["liste"][n]["image"].as_str() {
-                piles[k][n].set_image(Some(image::PngImage::load(vv.to_string())?));
+                piles[k][n].set_image(Some(PngImage::load(vv.to_string())?));
                 piles[k][n].show();
                 piles[k][n].redraw();
             } else {
@@ -147,7 +163,7 @@ fn loadquestions(
     menu: &mut menu::MenuButton,
     s: Sender<Message>,
     v: &Value,
-) -> std::option::Option<()> {
+) -> Option<Vec<String>> {
     //let linoms = v["attrs"]["nom"].as_array()?;
     //let nom = linoms[rand::thread_rng().gen_range(0..linoms.len())];
     //println!("{}", nom);
@@ -157,8 +173,10 @@ fn loadquestions(
     let id = rand::thread_rng().gen_range(0..linoms.len());
     let perso = &v["liste"].as_array()?[id];
 
-    let _ = menu.clear_submenu(menu.find_index("Question"));
+    let _pasgrave = menu.clear_submenu(menu.find_index("Question"));
 
+    let mut qli: Vec<String> = vec![];
+    let mut n = 0;
     let g: Value = serde_json::from_str(&perso.to_string()).unwrap();
     for x in v["attrs"].as_object()? {
         for y in x.1.as_array()? {
@@ -168,68 +186,74 @@ fn loadquestions(
                 Shortcut::None,
                 menu::MenuFlag::Radio,
                 s,
-                Message::Question(Box::leak(
-                    (x.0.to_string()
-                        + " est "
-                        + txt
-                        + " ? "
-                        + if g[x.0] == txt { "Vrai" } else { "Faux" })
-                    .into_boxed_str(),
-                )),
+                Message::Question(n),
             );
+            qli.push(
+                x.0.to_string()
+                    + " est "
+                    + txt
+                    + " ? "
+                    + if g[x.0] == txt { "Vrai" } else { "Faux" },
+            );
+            n += 1;
         }
     }
-    Some(())
+
+    menu.add(
+        "Question/Mode \"et\"",
+        Shortcut::None,
+        menu::MenuFlag::Radio,
+        |_| {},
+    );
+    menu.add(
+        "Question/Mode \"ou incl\"",
+        Shortcut::None,
+        menu::MenuFlag::Radio,
+        |_| {},
+    );
+    menu.add(
+        "Question/Mode \"ou excl\"",
+        Shortcut::None,
+        menu::MenuFlag::Radio,
+        |_| {},
+    );
+
+    Some(qli)
 }
 
-fn main() {
-    let a = app::App::default(); //.with_scheme(app::Scheme::Plastic);
-    app::background(0, 0, 0); //app::background(226, 208, 177);
-                              //res.set_color(Color::Red); marche pas utiliser app::background(255, 100, 100); mais rouge sous bouttons
-                              //app::set_font_size(20);
-                              //let widget_scheme = WidgetScheme::new(SchemeType::Aqua);
-                              //widget_scheme.apply();
-                              //let theme = ColorTheme::new(color_themes::SHAKE_THEME);
-                              //theme.apply();
-
-    let (s, r) = app::channel::<Message>();
-
-    let mut wind = Window::default()
-        .with_size(89 * 6, 170 * 4 + 30 + 30)
-        .center_screen()
-        .with_label("Qui est-ce ?");
-
-    let mut n: usize = 0;
-    let mut frame: [Frame; 24] = unsafe { ::std::mem::uninitialized() };
-    let mut b: [Button; 24] = unsafe { ::std::mem::uninitialized() };
+fn mainmaker(s: Sender<Message>) -> (Vec<Frame>, Vec<Button>, Vec<Vec<Button>>, Button) {
+    let mut frame: Vec<Frame> = vec![];
+    let mut b: Vec<Button> = vec![];
     for j in 0..4 {
         for i in 0..6 {
-            frame[n] = Frame::new(90 * i, 170 * j + 30, 89, 146, None);
-            b[n] = Button::new(90 * i + 2, 170 * j + 148 + 30, 89, 20, "Renverse");
-            b[n].set_color(Color::from_hex(0x42A5F5));
-            b[n].emit(s, Message::Switch(n));
-            b[n].hide();
-            n += 1;
+            frame.push(Frame::new(90 * i, 170 * j + 30, 89, 146, None));
+            let mut tmpb = Button::new(90 * i + 2, 170 * j + 148 + 30, 89, 20, "Renverse");
+            tmpb.set_color(Color::from_hex(0x3cf2fc)); //0x42A5F5
+            tmpb.emit(s, Message::Switch(b.len()));
+            tmpb.hide();
+            b.push(tmpb);
         }
     }
 
-    let mut n: usize = 0;
-    let mut piles: Vec<[Button; 24]> = vec![];
+    let mut piles: Vec<Vec<Button>> = vec![];
     for k in 0..4 {
-        let mut pile: [Button; 24] = unsafe { ::std::mem::uninitialized() };
+        let mut pile: Vec<Button> = vec![];
         for i in 0..24 {
-            pile[n] = Button::new(i + 90 / (24 - i), 170 * k + 30, 89, 146, None);
-            pile[n].emit(s, Message::Etale(k.try_into().unwrap()));
-            pile[n].hide();
-            n += 1;
+            let mut tmppile = Button::new(i + 90 / (24 - i), 170 * k + 30, 89, 146, None);
+            tmppile.emit(s, Message::Etale(k.try_into().unwrap())); //trop petit pour overflow
+            tmppile.hide();
+            pile.push(tmppile);
         }
-        n = 0;
         piles.push(pile);
     }
 
-    let mut res = Frame::new(0, 170 * 4 + 30, 89 * 6, 30, None);
-    res.set_label_color(Color::White);
+    let mut charge = Button::new(200, 600, 120, 40, "Charge Partie");
+    charge.set_color(Color::from_hex(0x42A5F5));
 
+    (frame, b, piles, charge)
+}
+
+fn menumaker(s: Sender<Message>) -> (menu::MenuButton, CheckButton, Button) {
     let mut menu = menu::MenuButton::default();
     menu.set_pos(0, 0);
     menu.set_label("Menu");
@@ -250,18 +274,6 @@ fn main() {
     vali.emit(s, Message::Valider);
     vali.set_color(Color::from_hex(0x42A5F5));
 
-    let mut pilesaddr: Vec<Value> = vec![];
-    for file in fs::read_dir("./").unwrap() {
-        let u = file.as_ref().unwrap().file_name();
-        if u.to_str().unwrap().contains('.') {
-            if u.to_str().unwrap().split('.').nth(1).unwrap() == "json" {
-                if let Ok(v) = tryfile(&u.into_string().unwrap()) {
-                    pilesaddr.push(v);
-                }
-            }
-        }
-    }
-
     menu.add(
         "Quitter",
         Shortcut::None,
@@ -277,30 +289,64 @@ fn main() {
         Message::Change,
     );
 
+    (menu, check, vali)
+}
+
+fn main() {
+    let a = app::App::default(); //.with_scheme(app::Scheme::Plastic);
+    app::background(0, 0, 0); //app::background(19, 33, 221); //app::background(226, 208, 177);
+                              //res.set_color(Color::Red); marche pas utiliser app::background(255, 100, 100); mais rouge sous bouttons
+                              //app::set_font_size(20);
+                              //let widget_scheme = WidgetScheme::new(SchemeType::Aqua);
+                              //widget_scheme.apply();
+                              //let theme = ColorTheme::new(color_themes::SHAKE_THEME);
+                              //theme.apply();
+
+    let (s, r) = app::channel::<Message>();
+
+    let mut wind = Window::default()
+        .with_size(89 * 6, 170 * 4 + 30 + 30)
+        .center_screen()
+        .with_label("Qui est-ce ?");
+
+    let (mut frame, mut b, mut piles, mut charge) = mainmaker(s);
+    let (mut menu, mut _check, mut _vali) = menumaker(s);
+
+    let mut pilesaddr = getaddrs();
+
+    let mut res = Frame::new(0, 170 * 4 + 30, 89 * 6, 30, None);
+    res.set_label_color(Color::White);
+
+    let mut qli: Vec<String> = vec![];
+
     wind.make_resizable(false);
     wind.end();
     wind.show();
 
     s.send(Message::Change);
     //fnerror("test");
+
     while a.wait() {
         use Message::*;
         if let Some(msg) = r.recv() {
             match msg {
-                Question(txt) => res.set_label(txt),
+                Question(txt) => res.set_label(&qli[txt]),
                 Switch(n) => toggle(&mut frame[n]),
                 Valider | Sauvegarde => {}
                 Etale(num) => {
                     etalepile(&mut frame, &mut pilesaddr[num], &mut b);
                     hidevec(&mut piles);
-                    if loadquestions(&mut menu, s, &pilesaddr[num]).is_none() {
-                        fnerror("json incorrect");
+                    charge.hide();
+                    match loadquestions(&mut menu, s, &pilesaddr[num]) {
+                        Some(x) => qli = x,
+                        None => fnerror("json incorrect"),
                     }
                 }
                 Change => {
                     menu.remove(menu.find_index("Question"));
                     hide(&mut b);
                     hide(&mut frame);
+                    charge.show();
                     if let Err(e) = showdecks(&mut piles, &pilesaddr) {
                         println!("{:?}", e);
                         fnerror("Les cartes ne peuvent pas être affichées, voir terminal");
