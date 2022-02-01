@@ -1,5 +1,5 @@
 //#![allow(unused_imports)]
-//cargo clippy -- -W clippy::pedantic -W clippy::nursery -A clippy::many-single-char-names -A clippy::unreadable-literal -A clippy::enum-glob-use -W absolute-paths-not-starting-with-crate -W deprecated-in-future -W elided-lifetimes-in-paths -W explicit-outlives-requirements -W keyword-idents -W macro-use-extern-crate -W meta-variable-misuse -W missing-abi -W missing-copy-implementations  -W non-ascii-idents -W noop-method-call -W pointer-structural-match -W rust-2021-incompatible-closure-captures -W rust-2021-incompatible-or-patterns -W rust-2021-prefixes-incompatible-syntax -W rust-2021-prelude-collisions -W single-use-lifetimes -W trivial-casts -W trivial-numeric-casts -W unreachable-pub -W unsafe-op-in-unsafe-fn -W unused-crate-dependencies -W unused-extern-crates -W unused-import-braces -W unused-lifetimes -W unused-qualifications -W variant-size-differences
+//cargo clippy -- -W clippy::pedantic -W clippy::nursery -A clippy::many-single-char-names -A clippy::similar-names -A clippy::unreadable-literal -A clippy::enum-glob-use -W absolute-paths-not-starting-with-crate -W deprecated-in-future -W elided-lifetimes-in-paths -W explicit-outlives-requirements -W keyword-idents -W macro-use-extern-crate -W meta-variable-misuse -W missing-abi -W missing-copy-implementations  -W non-ascii-idents -W noop-method-call -W pointer-structural-match -W rust-2021-incompatible-closure-captures -W rust-2021-incompatible-or-patterns -W rust-2021-prefixes-incompatible-syntax -W rust-2021-prelude-collisions -W single-use-lifetimes -W trivial-casts -W trivial-numeric-casts -W unreachable-pub -W unsafe-op-in-unsafe-fn -W unused-crate-dependencies -W unused-extern-crates -W unused-import-braces -W unused-lifetimes -W unused-qualifications -W variant-size-differences
 //#![allow(deprecated)]
 //mod parsing;
 use fltk::app::Sender;
@@ -127,6 +127,12 @@ fn hidevec(p: &mut Vec<Vec<impl WidgetExt>>) {
 fn hide(k: &mut Vec<impl WidgetExt>) {
 	for fr in k {
 		fr.hide();
+	}
+}
+
+fn activate(k: &mut Vec<impl WidgetExt>) {
+	for fr in k {
+		fr.activate();
 	}
 }
 
@@ -299,9 +305,11 @@ fn comm(
 	let mut numframe = 0_usize;
 	let persos = monaddr["liste"].as_array().unwrap();
 	for unpers in persos {
-		if numframe < frame.len() {
-			let mut nb = 0_u64;
-			let mut tous = true;
+		if numframe < frame.len() && frame[numframe].active() {
+			let mut nbsame = 0_u64;
+			let mut nbvrai = 0_u64;
+			let mut toussame = true;
+			let mut tousvrai = true;
 			let mut n = 0_usize;
 			for x in monaddr["attrs"].as_object().unwrap() {
 				for y in x.1.as_array().unwrap() {
@@ -311,41 +319,59 @@ fn comm(
 						.unwrap();
 					if cho.is_radio() && cho.value() {
 						if rli[n] {
-							if unpers[x.0] != txt {
-								if first {
-									tous = false;
-								} else {
-									frame[numframe].deactivate();
-								}
-							} else if first {
-								nb += 1;
-							}
-						} else if unpers[x.0] == txt {
-							if first {
-								tous = false;
-							} else {
-								frame[numframe].deactivate();
-							}
-						} else if first {
-							nb += 1;
+							nbvrai += 1;
+						} else {
+							tousvrai = false;
+						}
+						if unpers[x.0] == txt {
+							nbsame += 1;
+						} else {
+							toussame = false;
 						}
 					}
 					n += 1;
 				}
 			}
-			if first
-				&& frame[numframe].active()
-				&& !match mode {
-					MODE::ET => tous,     //et
-					MODE::OR => nb > 0,   //ou incl
-					MODE::XOR => nb == 1, //ou excl
-				} {
-				nu += 1;
+			if !match mode {
+				MODE::ET => (!toussame || tousvrai) && (toussame || !tousvrai), //et
+				MODE::OR => (nbsame > 0 && nbvrai > 0) || (nbvrai == 0 && nbsame == 0), //ou incl
+				MODE::XOR => (nbsame == 1 && nbvrai == 1) || (nbvrai == 0 && nbsame == 0), //(nbsame == 1 && tousvrai) || (!tousvrai), //ou excl
+			} {
+				if first {
+					nu += 1;
+				} else {
+					frame[numframe].deactivate();
+				}
 			}
+
 			numframe += 1;
 		}
 	}
 	nu
+}
+fn valide(qli: &mut Vec<String>, rli: &mut Vec<bool>, menu: &mut menu::MenuButton, mode: &mut MODE) -> bool {
+	let mut nb = 0_u64;
+	let mut tous = true;
+	for n in 0..qli.len() {
+		let cho = menu.find_item(&qli[n]).unwrap();
+		if cho.is_radio() && cho.value() {
+			println!("{} {}", qli[n], if rli[n] { "Vrai" } else { "Faux" });
+			if rli[n] {
+				nb += 1;
+			//println!("test");//cho.label().unwrap()
+			} else {
+				tous = false;
+			}
+		}
+	}
+	for el in qli {
+		menu.find_item(el).unwrap().clear();
+	}
+	match mode {
+		MODE::ET => tous,     //et
+		MODE::OR => nb > 0,   //ou incl
+		MODE::XOR => nb == 1, //ou excl
+	}
 }
 
 fn main() {
@@ -383,7 +409,7 @@ fn main() {
 	wind.show();
 	wind.wait_for_expose();
 	a.wait();
-	app::sleep(0.01);
+	app::sleep(0.02);
 	//check.set_checked(true);
 	//s.send(Message::Triche);
 	//wind.flush();//a.redraw();
@@ -417,27 +443,11 @@ fn main() {
 					if check.value() {
 						let _ = comm(false, &mut pilesaddr[monnum], &mut rli, &mut frame, &mut mode, &mut menu);
 					}
-					let mut nb = 0_u64;
-					let mut tous = true;
-					let vrai: bool;
-					for n in 0..qli.len() {
-						let cho = menu.find_item(&qli[n]).unwrap();
-						if cho.is_radio() && cho.value() {
-							println!("{} {}", qli[n], if rli[n] { "Vrai" } else { "Faux" });
-							if rli[n] {
-								nb += 1;
-							//println!("test");//cho.label().unwrap()
-							} else {
-								tous = false;
-							}
-						}
-					}
-					match mode {
-						MODE::ET => vrai = tous,     //et
-						MODE::OR => vrai = nb > 0,   //ou incl
-						MODE::XOR => vrai = nb == 1, //ou excl
-					};
-					res.set_label(if vrai { "Vrai" } else { "Faux" });
+					res.set_label(if valide(&mut qli, &mut rli, &mut menu, &mut mode) {
+						"Vrai"
+					} else {
+						"Faux"
+					});
 				}
 				Etale(num) => {
 					monnum = num;
@@ -456,6 +466,7 @@ fn main() {
 				}
 				Change => {
 					menu.remove(menu.find_index("Question"));
+					activate(&mut frame);
 					hide(&mut b);
 					hide(&mut frame);
 					compte.hide();
