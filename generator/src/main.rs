@@ -1,3 +1,5 @@
+use fltk::menu::*;
+use fltk::frame::*;
 use fltk::{app::*, browser::*, button::*, enums::*, group::*, input::*, prelude::*, window::*};
 use std::collections::HashMap;
 
@@ -27,7 +29,7 @@ fn main() {
 
 	//let mut pack = Pack::new(15, 45, 150, 450 - 45, "");
 	//pack.set_spacing(10);
-	let tab = Tabs::new(10, 10, 800, 450 - 20, "");
+	let tab = Tabs::new(10, 10, 800, 300 - 20, "");
 	let grp1 = Group::new(10, 35, 500 - 20, 450 - 45, "Attributs\t\t");
 
 	//filter_input.set_trigger(CallbackTrigger::Changed);
@@ -94,23 +96,27 @@ fn main() {
 	delete_button2.deactivate();
 
 	grp1.end();
-	let grp2 = Group::new(10, 35, 500 - 30, 450 - 25, "Personnages\t\t");
+	let mut grp2 = Scroll::new(10, 35,delete_button2.x() + delete_button2.width() + WIDGET_PADDING,
+	create_button.y() + create_button.height() + WIDGET_PADDING, "Personnages\t\t");
+	grp2.set_type(ScrollType::Both);
 	grp2.end();
 	tab.end();
 	//pack.end();
 	let mut attrslis: HashMap<String, Vec<String>> = HashMap::new();
 	attrslis.insert("".to_string(), vec![]);
-	let mut model = vec!["Nom".to_string(), "Chauve".to_string(), "Lunettes".to_string()];
+	let mut model = vec!["Nom".to_string(), "Chauve".to_string(), "Lunettes".to_string(), "Lunettes2".to_string()];
 	attrslis.insert("Nom".to_string(), vec![]);
 	attrslis.insert("Chauve".to_string(), vec![]);
 	attrslis.insert("Lunettes".to_string(), vec![]);
+	attrslis.insert("Lunettes2".to_string(), vec![]);
+
 	let mut attractu = "".to_string();
 	//println!("{}", model[attractu as usize]);
 	sender.send(Message::Show);
 
 	wind.set_size(
-		delete_button2.x() + delete_button2.width() + WIDGET_PADDING,
-		create_button.y() + create_button.height() + WIDGET_PADDING,
+		delete_button2.x() + delete_button2.width() + WIDGET_PADDING+10,
+		create_button.y() + create_button.height() + WIDGET_PADDING+10,
 	);
 	let export = Button::default()
 		.with_pos(wind.width() - WIDGET_WIDTH - WIDGET_PADDING / 2, WIDGET_PADDING / 2)
@@ -120,30 +126,31 @@ fn main() {
 		.with_pos(export.x() - WIDGET_WIDTH - WIDGET_PADDING / 2, WIDGET_PADDING / 2)
 		.with_size(WIDGET_WIDTH, WIDGET_HEIGHT)
 		.with_label("Import");
+
 	wind.end();
 	wind.show();
 	while app.wait() {
 		match receiver.recv() {
 			Some(Message::Create) => {
-			if attr_input.value().len()>0{
-				model.push(attr_input.value());
-				attrslis.insert(attr_input.value(), vec![]);
-				attr_input.set_value("");
-				sender.send(Message::Show);
-			}
+				if attr_input.value().len() > 0 {
+					model.push(attr_input.value());
+					attrslis.insert(attr_input.value(), vec![]);
+					attr_input.set_value("");
+					sender.send(Message::Show);
+				}
 			}
 			Some(Message::Update) => {
-			if attr_input.value().len()>0{
-				let selected_name = list_browser.text(list_browser.value()).unwrap();
-				let index = model.iter().position(|s| s == &selected_name).unwrap();
-				model[index] = attr_input.value();
-				let oldcont = attrslis.remove(&selected_name).unwrap();
-				attrslis.insert(attr_input.value(), oldcont);
-				list_browser.insert(list_browser.value(), &attr_input.value());
-				list_browser.select(list_browser.value()-1);
-				list_browser.remove(list_browser.value()+1);
-				attr_input.set_value("");
-			}
+				if attr_input.value().len() > 0 {
+					let selected_name = list_browser.text(list_browser.value()).unwrap();
+					let index = model.iter().position(|s| s == &selected_name).unwrap();
+					model[index] = attr_input.value();
+					let oldcont = attrslis.remove(&selected_name).unwrap();
+					attrslis.insert(attr_input.value(), oldcont);
+					list_browser.insert(list_browser.value(), &attr_input.value());
+					list_browser.select(list_browser.value() - 1);
+					list_browser.remove(list_browser.value() + 1);
+					attr_input.set_value("");
+				}
 			}
 			Some(Message::Delete) => {
 				let selected_name = list_browser.text(list_browser.value()).unwrap();
@@ -175,7 +182,7 @@ fn main() {
 				sender.send(Message::Select);
 			}
 			Some(Message::Create2) => {
-				if attr_input2.value().len()>0{
+				if attr_input2.value().len() > 0 {
 					attrslis.get_mut(&attractu).unwrap().push(attr_input2.value());
 					attr_input2.set_value("");
 					sender.send(Message::Show2);
@@ -202,6 +209,22 @@ fn main() {
 					update_button2.activate();
 					delete_button2.activate();
 				}
+				grp2.clear();
+				for u in 1..25 {
+				let jjj = Box::leak(u.to_string().into_boxed_str());
+				let fr = Frame::new(10  + WIDGET_PADDING, 10+(40 + WIDGET_PADDING)  * (u as i32), 10, WIDGET_HEIGHT, Some(&*jjj));
+				for n in 0..model.len() {
+					let mut chce = MenuButton::default()
+						.with_pos(50 + 150 * (n as i32) + WIDGET_PADDING, 10+(40 + WIDGET_PADDING)  * (u as i32))
+						.with_size(150, WIDGET_HEIGHT)
+						.with_label(&model[n]);
+					grp2.add(&chce);
+					grp2.add(&fr);
+					for y in &attrslis[&model[n]] {
+						chce.add_choice(y);
+					}
+				}
+			}
 			}
 			Some(Message::Show2) => {
 				list_browser2.clear();
