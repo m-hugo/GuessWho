@@ -211,8 +211,8 @@ fn main() {
 				}
 				grp2.clear();
 				for u in 1..25 {
-				let jjj = Box::leak(u.to_string().into_boxed_str());
-				let fr = Frame::new(10  + WIDGET_PADDING, 10+(40 + WIDGET_PADDING)  * (u as i32), 10, WIDGET_HEIGHT, Some(&*jjj));
+				let jj = Box::leak(u.to_string().into_boxed_str());
+				let fr = Frame::new(10  + WIDGET_PADDING, 10+(40 + WIDGET_PADDING)  * (u as i32), 10, WIDGET_HEIGHT, Some(&*jj));
 				for n in 0..model.len() {
 					let mut chce = MenuButton::default()
 						.with_pos(50 + 150 * (n as i32) + WIDGET_PADDING, 10+(40 + WIDGET_PADDING)  * (u as i32))
