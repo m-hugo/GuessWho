@@ -232,7 +232,7 @@ fn mainmaker(s: Sender<Message>) -> (Vec<Frame>, Vec<Button>, Vec<Vec<Button>>, 
 		for i in 0..6 {
 			frame.push(Frame::new(90 * i, 170 * j + 30, 89, 146, None));
 			let mut tmpb = Button::new(90 * i + 2, 170 * j + 148 + 30, 89, 20, "Renverse");
-			tmpb.set_color(Color::from_hex(0x3cf2fc)); //0x42A5F5
+			tmpb.set_color(Color::from_hex(0x42A5F5)); //0x42A5F5
 			tmpb.emit(s, Message::Switch(b.len()));
 			tmpb.hide();
 			b.push(tmpb);

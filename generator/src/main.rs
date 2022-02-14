@@ -1,8 +1,11 @@
-use fltk::menu::*;
 use fltk::frame::*;
-use fltk::{app::*, browser::*, button::*, enums::*, group::*, input::*, prelude::*, window::*};
+use fltk::menu::*;
+use fltk::{app::*, browser::*, button::*, dialog, enums::*, group::*, input::*, prelude::*, window::*};
+use serde_json::Map;
+use serde_json::Value;
 use std::collections::HashMap;
-
+use std::fs;
+use std::io::BufReader;
 const WIDGET_WIDTH: i32 = 70;
 const WIDGET_HEIGHT: i32 = 25;
 const WIDGET_PADDING: i32 = 10;
@@ -19,8 +22,15 @@ enum Message {
 	Select2,
 	Show,
 	Show2,
+	Export,
+	Import,
 }
-
+fn tryfile(f: &str) -> Result<Value, Box<dyn std::error::Error>> {
+	let file = fs::File::open(f)?; //txt
+	let reader = BufReader::new(file);
+	let v: Value = serde_json::from_reader(reader)?;
+	Ok(v)
+}
 fn main() {
 	let app = App::default().with_scheme(Scheme::Gtk);
 	let mut wind = Window::default().with_label("Generateur");
@@ -29,8 +39,8 @@ fn main() {
 
 	//let mut pack = Pack::new(15, 45, 150, 450 - 45, "");
 	//pack.set_spacing(10);
-	let tab = Tabs::new(10, 10, 800, 300 - 20, "");
-	let grp1 = Group::new(10, 35, 500 - 20, 450 - 45, "Attributs\t\t");
+	let tab = Tabs::new(10, 10, 800, 450 - 45, "");
+	let grp1 = Group::new(10, 35, 800, 450 - 45, "Attributs\t\t");
 
 	//filter_input.set_trigger(CallbackTrigger::Changed);
 
@@ -96,15 +106,25 @@ fn main() {
 	delete_button2.deactivate();
 
 	grp1.end();
-	let mut grp2 = Scroll::new(10, 35,delete_button2.x() + delete_button2.width() + WIDGET_PADDING,
-	create_button.y() + create_button.height() + WIDGET_PADDING, "Personnages\t\t");
+	let mut grp2 = Scroll::new(
+		10,
+		35,
+		delete_button2.x() + delete_button2.width() + WIDGET_PADDING,
+		create_button.y() + create_button.height() + WIDGET_PADDING,
+		"Personnages\t\t",
+	);
 	grp2.set_type(ScrollType::Both);
 	grp2.end();
 	tab.end();
 	//pack.end();
 	let mut attrslis: HashMap<String, Vec<String>> = HashMap::new();
 	attrslis.insert("".to_string(), vec![]);
-	let mut model = vec!["Nom".to_string(), "Chauve".to_string(), "Lunettes".to_string(), "Lunettes2".to_string()];
+	let mut model = vec![
+		"Nom".to_string(),
+		"Chauve".to_string(),
+		"Lunettes".to_string(),
+		"Lunettes2".to_string(),
+	];
 	attrslis.insert("Nom".to_string(), vec![]);
 	attrslis.insert("Chauve".to_string(), vec![]);
 	attrslis.insert("Lunettes".to_string(), vec![]);
@@ -115,17 +135,19 @@ fn main() {
 	sender.send(Message::Show);
 
 	wind.set_size(
-		delete_button2.x() + delete_button2.width() + WIDGET_PADDING+10,
-		create_button.y() + create_button.height() + WIDGET_PADDING+10,
+		delete_button2.x() + delete_button2.width() + WIDGET_PADDING + 10,
+		create_button.y() + create_button.height() + WIDGET_PADDING + 10,
 	);
-	let export = Button::default()
+	let mut export = Button::default()
 		.with_pos(wind.width() - WIDGET_WIDTH - WIDGET_PADDING / 2, WIDGET_PADDING / 2)
 		.with_size(WIDGET_WIDTH, WIDGET_HEIGHT)
 		.with_label("Export");
-	let mut _import = Button::default()
+	export.emit(sender, Message::Export);
+	let mut import = Button::default()
 		.with_pos(export.x() - WIDGET_WIDTH - WIDGET_PADDING / 2, WIDGET_PADDING / 2)
 		.with_size(WIDGET_WIDTH, WIDGET_HEIGHT)
 		.with_label("Import");
+	import.emit(sender, Message::Import);
 
 	wind.end();
 	wind.show();
@@ -201,6 +223,31 @@ fn main() {
 				sender.send(Message::Show2);
 				sender.send(Message::Select2);
 			}
+			Some(Message::Export) => {
+				println!("Code json");
+				let mut map: serde_json::Map<String, Value> = Map::new();
+				for n in 0..model.len() {
+					map.insert(model[n].clone(), attrslis[&model[n]].clone().into());
+				}
+				let v: Value = map.into();
+				let mut map2: serde_json::Map<String, Value> = Map::new();
+				map2.insert("attrs".to_string(), v);
+				map2.insert("liste".to_string(), vec!["nom"].into());
+				let v2: Value = map2.into();
+				println!("{}", serde_json::to_string_pretty(&v2).unwrap());
+			}
+			Some(Message::Import) => {
+				let mut dlg = dialog::FileDialog::new(dialog::FileDialogType::BrowseFile);
+				dlg.set_option(dialog::FileDialogOptions::NoOptions);
+				dlg.set_filter("*.{json}");
+				dlg.show();
+				let filename = dlg.filename().to_string_lossy().to_string();
+				let v = tryfile(&filename).unwrap();
+
+				for x in v["attrs"].as_object().unwrap() {
+					println!("{:?}", x);
+				}
+			}
 			Some(Message::Select2) => {
 				if list_browser2.value() == 0 {
 					update_button2.deactivate();
@@ -211,20 +258,29 @@ fn main() {
 				}
 				grp2.clear();
 				for u in 1..25 {
-				let jj = Box::leak(u.to_string().into_boxed_str());
-				let fr = Frame::new(10  + WIDGET_PADDING, 10+(40 + WIDGET_PADDING)  * (u as i32), 10, WIDGET_HEIGHT, Some(&*jj));
-				for n in 0..model.len() {
-					let mut chce = MenuButton::default()
-						.with_pos(50 + 150 * (n as i32) + WIDGET_PADDING, 10+(40 + WIDGET_PADDING)  * (u as i32))
-						.with_size(150, WIDGET_HEIGHT)
-						.with_label(&model[n]);
-					grp2.add(&chce);
-					grp2.add(&fr);
-					for y in &attrslis[&model[n]] {
-						chce.add_choice(y);
+					let jj = Box::leak(u.to_string().into_boxed_str());
+					let fr = Frame::new(
+						10 + WIDGET_PADDING,
+						10 + (40 + WIDGET_PADDING) * (u as i32),
+						10,
+						WIDGET_HEIGHT,
+						Some(&*jj),
+					);
+					for n in 0..model.len() {
+						let mut chce = MenuButton::default()
+							.with_pos(
+								50 + 150 * (n as i32) + WIDGET_PADDING,
+								10 + (40 + WIDGET_PADDING) * (u as i32),
+							)
+							.with_size(150, WIDGET_HEIGHT)
+							.with_label(&model[n]);
+						grp2.add(&chce);
+						grp2.add(&fr);
+						for y in &attrslis[&model[n]] {
+							chce.add_choice(y);
+						}
 					}
 				}
-			}
 			}
 			Some(Message::Show2) => {
 				list_browser2.clear();
