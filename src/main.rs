@@ -34,6 +34,7 @@ pub enum Message {
 	Change,
 	Triche,
 	Compte,
+	Charge,
 	Etale(usize),
 	Mode(MODE),
 }
@@ -51,7 +52,9 @@ fn getaddrs() -> Vec<Value> {
 		let u = file.as_ref().unwrap().file_name();
 		if u.to_str().unwrap().contains('.') && u.to_str().unwrap().split('.').nth(1).unwrap() == "json" {
 			if let Ok(v) = tryfile(&u.into_string().unwrap()) {
-				addrs.push(v);
+				if let Some(_) = v["liste"][0]["image"].as_str() {
+					addrs.push(v);
+				}
 			}
 		}
 	}
@@ -253,6 +256,7 @@ fn mainmaker(s: Sender<Message>) -> (Vec<Frame>, Vec<Button>, Vec<Vec<Button>>, 
 
 	let mut charge = Button::new(200, 600, 120, 40, "Charge Partie");
 	charge.set_color(Color::from_hex(0x42A5F5));
+	charge.emit(s, Message::Charge);
 
 	(frame, b, piles, charge)
 }
@@ -422,7 +426,25 @@ fn main() {
 		use Message::*;
 		if let Some(msg) = r.recv() {
 			match msg {
-				Sauvegarde => {}
+				Charge => {
+					if let Ok(v) =  tryfile("./sauvegarde.json"){
+						let arr = v.as_array().unwrap();
+						for n in 0..frame.len() {
+							if !arr[n].as_bool().unwrap() {
+								frame[n].deactivate();
+							}
+						}
+
+					}
+				}
+				Sauvegarde => {
+					let mut vecrenverse: Vec<bool> = vec![];
+					for n in 0..frame.len() {
+						vecrenverse.push(frame[n].active());
+					}
+					let v: Value = vecrenverse.into();
+					fs::write("./sauvegarde.json", serde_json::to_string_pretty(&v).unwrap()).expect("Unable to write file");
+				}
 				//Question(n) => toggli[n]^=true,
 				Switch(n) => toggle(&mut frame[n]),
 				Mode(m) => mode = m,
