@@ -1,11 +1,16 @@
 use fltk::frame::*;
 use fltk::menu::*;
+use fltk::text::TextDisplay;
 use fltk::{app::*, browser::*, button::*, dialog, enums::*, group::*, input::*, prelude::*, window::*};
 use serde_json::Map;
 use serde_json::Value;
 use std::collections::HashMap;
 use std::fs;
 use std::io::BufReader;
+use std::cell::RefCell;
+use std::rc::Rc;
+use once_cell::sync::Lazy; // 1.3.1
+use std::sync::Mutex;
 const WIDGET_WIDTH: i32 = 70;
 const WIDGET_HEIGHT: i32 = 25;
 const WIDGET_PADDING: i32 = 10;
@@ -31,6 +36,8 @@ fn tryfile(f: &str) -> Result<Value, Box<dyn std::error::Error>> {
 	let v: Value = serde_json::from_reader(reader)?;
 	Ok(v)
 }
+static chcemap: Lazy<Mutex<HashMap<String, String>>> = Lazy::new(|| Mutex::new(HashMap::new()));
+	
 fn main() {
 	let app = App::default().with_scheme(Scheme::Gtk);
 	let mut wind = Window::default().with_label("Generateur");
@@ -181,6 +188,7 @@ fn main() {
 				attrslis.remove(&selected_name);
 				sender.send(Message::Show);
 				sender.send(Message::Select);
+				println!("{:?}", chcemap.lock().unwrap());
 			}
 			Some(Message::Select) => {
 				if list_browser.value() == 0 {
@@ -193,8 +201,8 @@ fn main() {
 					update_button.activate();
 					create_button2.activate();
 					delete_button.activate();
+					sender.send(Message::Show2);
 				}
-				sender.send(Message::Show2);
 			}
 			Some(Message::Show) => {
 				list_browser.clear();
@@ -221,7 +229,6 @@ fn main() {
 				let index = attrslis[&attractu].iter().position(|s| s == &selected_name).unwrap();
 				attrslis.get_mut(&attractu).unwrap().remove(index);
 				sender.send(Message::Show2);
-				sender.send(Message::Select2);
 			}
 			Some(Message::Export) => {
 				println!("Code json");
@@ -234,6 +241,7 @@ fn main() {
 				map2.insert("attrs".to_string(), v);
 				map2.insert("liste".to_string(), vec!["nom"].into());
 				let v2: Value = map2.into();
+				println!("{}", &chcemap.lock().unwrap()["00Nom"]);
 				println!("{}", serde_json::to_string_pretty(&v2).unwrap());
 			}
 			Some(Message::Import) => {
@@ -243,10 +251,20 @@ fn main() {
 				dlg.show();
 				let filename = dlg.filename().to_string_lossy().to_string();
 				let v = tryfile(&filename).unwrap();
-
-				for x in v["attrs"].as_object().unwrap() {
-					println!("{:?}", x);
+				model.clear();
+				attrslis.clear();
+				for (x, y) in v["attrs"].as_object().unwrap() {
+					let xs = x.as_str().to_string();
+					model.push(xs.clone());
+					attrslis.insert(xs, y.as_array().unwrap().iter().map(|a| a.as_str().unwrap().to_string()).collect());
 				}
+				for n in 0..24{
+				for (x, y) in v["liste"][n].as_object().unwrap() {
+					let xs = x.as_str();
+					chcemap.lock().unwrap().insert(n.to_string() + xs, y.as_str().unwrap().to_string());
+				}
+				}
+				sender.send(Message::Show);
 			}
 			Some(Message::Select2) => {
 				if list_browser2.value() == 0 {
@@ -257,6 +275,7 @@ fn main() {
 					delete_button2.activate();
 				}
 				grp2.clear();
+				println!("AA");
 				for u in 1..25 {
 					let jj = Box::leak(u.to_string().into_boxed_str());
 					let fr = Frame::new(
@@ -267,19 +286,28 @@ fn main() {
 						Some(&*jj),
 					);
 					for n in 0..model.len() {
-						let mut chce = MenuButton::default()
+						let mut chce = Choice::default()
 							.with_pos(
 								50 + 150 * (n as i32) + WIDGET_PADDING,
 								10 + (40 + WIDGET_PADDING) * (u as i32),
 							)
 							.with_size(150, WIDGET_HEIGHT)
 							.with_label(&model[n]);
-						grp2.add(&chce);
-						grp2.add(&fr);
 						for y in &attrslis[&model[n]] {
-							chce.add_choice(y);
+							chce.add(y, Shortcut::None, MenuFlag::Normal, move |c| {chcemap.lock().unwrap().insert(u.to_string() + &c.label(), c.choice().unwrap());});
 						}
+						if let Some(val) = chcemap.lock().unwrap().get(&(u.to_string()+ &chce.label())){
+							for x in chce.clone() {
+								if let Some(l) = x.label(){
+								if &l == val {
+									chce.set_item(&x);
+								}
+								}
+							}
+						}
+						grp2.add(&chce);
 					}
+					grp2.add(&fr);
 				}
 			}
 			Some(Message::Show2) => {
