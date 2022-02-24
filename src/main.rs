@@ -99,7 +99,7 @@ fn quitter(s: Sender<Message>) {
 	rester.set_callback(move |_| WidgetBase::delete(windpop.clone()));
 }
 
-fn etalepile(frame: &mut Vec<Frame>, val: &mut Value, b: &mut Vec<Button>) {
+fn etalepile(frame: &mut Vec<Frame>, val: &Value, b: &mut Vec<Button>) {
 	for n in 0..24 {
 		b[n].show();
 		frame[n].show();
@@ -299,7 +299,7 @@ fn menumaker(s: Sender<Message>) -> (menu::MenuButton, CheckButton, Button, Butt
 }
 fn comm(
 	first: bool,
-	monaddr: &mut Value,
+	monaddr: &Value,
 	rli: &mut Vec<bool>,
 	frame: &mut Vec<Frame>,
 	mode: &mut MODE,
@@ -398,7 +398,7 @@ fn main() {
 	let (mut frame, mut b, mut piles, mut charge) = mainmaker(s);
 	let (mut menu, check, mut vali, mut compte) = menumaker(s);
 
-	let mut pilesaddr = getaddrs();
+	let pilesaddr = getaddrs();
 
 	let mut res = Frame::new(0, 170 * 4 + 30, 89 * 6, 30, None);
 	res.set_label_color(Color::White);
@@ -406,8 +406,9 @@ fn main() {
 	let mut qli: Vec<String> = vec![];
 	let mut rli: Vec<bool> = vec![];
 	let mut mode = MODE::ET;
-	let mut monnum: usize = 0;
-
+	let mut mapile = &pilesaddr[0];
+	let maybesauv = tryfile("./sauvegarde.json");
+	
 	wind.make_resizable(false);
 	wind.end();
 	wind.show();
@@ -427,23 +428,28 @@ fn main() {
 		if let Some(msg) = r.recv() {
 			match msg {
 				Charge => {
-					if let Ok(v) =  tryfile("./sauvegarde.json"){
-						let arr = v.as_array().unwrap();
+					if let Ok(ref v) =  maybesauv{
+						let arr = v["frames"].as_array().unwrap();
 						for n in 0..frame.len() {
 							if !arr[n].as_bool().unwrap() {
 								frame[n].deactivate();
 							}
 						}
-
-					}
+						mapile = &v["planche"];
+						s.send(Etale(99));
+					} else { fnerror("./sauvegarde.json n'existe pas"); }
 				}
 				Sauvegarde => {
 					let mut vecrenverse: Vec<bool> = vec![];
 					for n in 0..frame.len() {
 						vecrenverse.push(frame[n].active());
 					}
-					let v: Value = vecrenverse.into();
-					fs::write("./sauvegarde.json", serde_json::to_string_pretty(&v).unwrap()).expect("Unable to write file");
+					let frames: Value = vecrenverse.into();
+					let mut m = serde_json::Map::new();
+					m.insert("frames".to_string(), frames);
+					m.insert("planche".to_string(), mapile.clone());
+					fs::write("./sauvegarde.json", serde_json::to_string_pretty(&m).unwrap()).expect("Unable to write file");
+					break;
 				}
 				//Question(n) => toggli[n]^=true,
 				Switch(n) => toggle(&mut frame[n]),
@@ -457,13 +463,13 @@ fn main() {
 				}
 				Compte => {
 					res.set_label(
-						&(comm(true, &mut pilesaddr[monnum], &mut rli, &mut frame, &mut mode, &mut menu).to_string()
+						&(comm(true, mapile, &mut rli, &mut frame, &mut mode, &mut menu).to_string()
 							+ " vont etre renversés"),
 					);
 				}
 				Valider => {
 					if check.value() {
-						let _ = comm(false, &mut pilesaddr[monnum], &mut rli, &mut frame, &mut mode, &mut menu);
+						let _ = comm(false, mapile, &mut rli, &mut frame, &mut mode, &mut menu);
 					}
 					res.set_label(if valide(&mut qli, &mut rli, &mut menu, &mut mode) {
 						"Vrai"
@@ -472,13 +478,13 @@ fn main() {
 					});
 				}
 				Etale(num) => {
-					monnum = num;
-					etalepile(&mut frame, &mut pilesaddr[num], &mut b);
+					if num != 99 {mapile = &pilesaddr[num];}
+					etalepile(&mut frame, mapile, &mut b);
 					hidevec(&mut piles);
 					compte.show();
 					vali.show();
 					charge.hide();
-					match loadquestions(&mut menu, s, &pilesaddr[num]) {
+					match loadquestions(&mut menu, s, mapile) {
 						Some((x, y)) => {
 							qli = x;
 							rli = y;
