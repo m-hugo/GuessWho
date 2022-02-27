@@ -3,6 +3,9 @@
 //#![allow(deprecated)]
 //mod parsing;
 use fltk::app::Sender;
+use fltk::dialog;
+use fltk::group::{Scroll, ScrollType};
+
 use fltk::{
 	app,
 	button::{Button, CheckButton},
@@ -34,7 +37,8 @@ pub enum Message {
 	Change,
 	Triche,
 	Compte,
-	Charge,
+	ChargeSauv,
+	ChargeFile,
 	Etale(usize),
 	Mode(MODE),
 }
@@ -52,7 +56,7 @@ fn getaddrs() -> Vec<Value> {
 		let u = file.as_ref().unwrap().file_name();
 		if u.to_str().unwrap().contains('.') && u.to_str().unwrap().split('.').nth(1).unwrap() == "json" {
 			if let Ok(v) = tryfile(&u.into_string().unwrap()) {
-				if let Some(_) = v["liste"][0]["image"].as_str() {
+				if v["liste"][0]["image"].as_str().is_some(){
 					addrs.push(v);
 				}
 			}
@@ -159,17 +163,21 @@ fn fnerror(e: &'static str) {
 }
 
 fn showdecks(piles: &mut Vec<Vec<Button>>, addr: &[Value]) -> Result<(), Box<dyn std::error::Error>> {
-	for k in 0..addr.len() {
-		for n in 0..24 {
-			if let Some(vv) = addr[k]["liste"][n]["image"].as_str() {
-				piles[k][n].set_image(Some(PngImage::load(vv.to_string())?));
-				piles[k][n].show();
-				piles[k][n].redraw();
-			} else {
-				piles[k][0].set_label("Error");
-				println!("image error");
+	if addr.len() <= 10 {
+		for k in 0..addr.len() {
+			for n in 0..24 {
+				if let Some(vv) = addr[k]["liste"][n]["image"].as_str() {
+					piles[k][n].set_image(Some(PngImage::load(vv.to_string())?));
+					piles[k][n].show();
+					piles[k][n].redraw();
+				} else {
+					piles[k][0].set_label("Error");
+					println!("image error");
+				}
 			}
 		}
+	} else {
+		fnerror("erreur: il y a plus de 10 planches dans ./");
 	}
 	Ok(())
 }
@@ -228,7 +236,10 @@ fn loadquestions(menu: &mut menu::MenuButton, s: Sender<Message>, v: &Value) -> 
 	Some((qli, rli))
 }
 
-fn mainmaker(s: Sender<Message>) -> (Vec<Frame>, Vec<Button>, Vec<Vec<Button>>, Button) {
+fn mainmaker(s: Sender<Message>) -> (Vec<Frame>, Vec<Button>, Vec<Vec<Button>>, Button, Button) {
+	let mut scrollgrp = Scroll::new(0, 31, 89 * 6, 170 * 4 + 30, "Choisir Planche");
+	scrollgrp.set_type(ScrollType::Vertical);
+
 	let mut frame: Vec<Frame> = vec![];
 	let mut b: Vec<Button> = vec![];
 	for j in 0..4 {
@@ -243,7 +254,7 @@ fn mainmaker(s: Sender<Message>) -> (Vec<Frame>, Vec<Button>, Vec<Vec<Button>>, 
 	}
 
 	let mut piles: Vec<Vec<Button>> = vec![];
-	for k in 0..4 {
+	for k in 0..10 {
 		let mut pile: Vec<Button> = vec![];
 		for i in 0..24 {
 			let mut tmppile = Button::new(i + 90 / (24 - i), 170 * k + 30, 89, 146, None);
@@ -254,11 +265,22 @@ fn mainmaker(s: Sender<Message>) -> (Vec<Frame>, Vec<Button>, Vec<Vec<Button>>, 
 		piles.push(pile);
 	}
 
-	let mut charge = Button::new(200, 600, 120, 40, "Charge Partie");
-	charge.set_color(Color::from_hex(0x42A5F5));
-	charge.emit(s, Message::Charge);
+	let mut fr = Frame::new(300, 300, 100, 10, Some("← Choisissez un tas de cartes"));
+	let mut fr2 = Frame::new(300, 350, 100, 10, Some("ou chargez un fichier ↓"));
+	fr.set_label_color(Color::from_hex(0x42A5F5));
+	fr2.set_label_color(Color::from_hex(0x42A5F5));
 
-	(frame, b, piles, charge)
+	let mut chargesauv = Button::new(280, 500, 150, 40, "Charge Sauvegarde");
+	chargesauv.set_color(Color::from_hex(0x42A5F5));
+	chargesauv.emit(s, Message::ChargeSauv);
+
+	let mut chargefile = Button::new(280, 600, 150, 40, "Charge Planche");
+	chargefile.set_color(Color::from_hex(0x42A5F5));
+	chargefile.emit(s, Message::ChargeFile);
+
+	scrollgrp.end();
+
+	(frame, b, piles, chargesauv, chargefile)
 }
 
 fn menumaker(s: Sender<Message>) -> (menu::MenuButton, CheckButton, Button, Button) {
@@ -395,7 +417,7 @@ fn main() {
 		.center_screen()
 		.with_label("Qui est-ce ?");
 
-	let (mut frame, mut b, mut piles, mut charge) = mainmaker(s);
+	let (mut frame, mut b, mut piles, mut chargesauv, mut chargefile) = mainmaker(s);
 	let (mut menu, check, mut vali, mut compte) = menumaker(s);
 
 	let pilesaddr = getaddrs();
@@ -408,7 +430,8 @@ fn main() {
 	let mut mode = MODE::ET;
 	let mut mapile = &pilesaddr[0];
 	let maybesauv = tryfile("./sauvegarde.json");
-	
+	let mut ooo;
+
 	wind.make_resizable(false);
 	wind.end();
 	wind.show();
@@ -427,8 +450,8 @@ fn main() {
 		use Message::*;
 		if let Some(msg) = r.recv() {
 			match msg {
-				Charge => {
-					if let Ok(ref v) =  maybesauv{
+				ChargeSauv => {
+					if let Ok(ref v) = maybesauv {
 						let arr = v["frames"].as_array().unwrap();
 						for n in 0..frame.len() {
 							if !arr[n].as_bool().unwrap() {
@@ -437,7 +460,19 @@ fn main() {
 						}
 						mapile = &v["planche"];
 						s.send(Etale(99));
-					} else { fnerror("./sauvegarde.json n'existe pas"); }
+					} else {
+						fnerror("./sauvegarde.json n'existe pas");
+					}
+				}
+				ChargeFile => {
+					let mut dlg = dialog::FileDialog::new(dialog::FileDialogType::BrowseFile);
+					dlg.set_option(dialog::FileDialogOptions::NoOptions);
+					dlg.set_filter("*.{json}");
+					dlg.show();
+					let filename = dlg.filename().to_string_lossy().to_string();
+					ooo = tryfile(&filename).unwrap();
+					mapile = &ooo;
+					s.send(Etale(99));
 				}
 				Sauvegarde => {
 					let mut vecrenverse: Vec<bool> = vec![];
@@ -463,8 +498,7 @@ fn main() {
 				}
 				Compte => {
 					res.set_label(
-						&(comm(true, mapile, &mut rli, &mut frame, &mut mode, &mut menu).to_string()
-							+ " vont etre renversés"),
+						&(comm(true, mapile, &mut rli, &mut frame, &mut mode, &mut menu).to_string() + " vont etre renversés"),
 					);
 				}
 				Valider => {
@@ -478,12 +512,15 @@ fn main() {
 					});
 				}
 				Etale(num) => {
-					if num != 99 {mapile = &pilesaddr[num];}
+					if num != 99 {
+						mapile = &pilesaddr[num];
+					}
 					etalepile(&mut frame, mapile, &mut b);
 					hidevec(&mut piles);
 					compte.show();
 					vali.show();
-					charge.hide();
+					chargefile.hide();
+					chargesauv.hide();
 					match loadquestions(&mut menu, s, mapile) {
 						Some((x, y)) => {
 							qli = x;
@@ -499,7 +536,8 @@ fn main() {
 					hide(&mut frame);
 					compte.hide();
 					vali.hide();
-					charge.show();
+					chargefile.show();
+					chargesauv.show();
 					if let Err(e) = showdecks(&mut piles, &pilesaddr) {
 						println!("{:?}", e);
 						fnerror("Les cartes ne peuvent pas être affichées, voir terminal");
