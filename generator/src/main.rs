@@ -36,7 +36,7 @@ fn tryfile(f: &str) -> Result<Value, Box<dyn std::error::Error>> {
 	let v: Value = serde_json::from_reader(reader)?;
 	Ok(v)
 }
-static chcemap: Lazy<Mutex<HashMap<String, String>>> = Lazy::new(|| Mutex::new(HashMap::new()));
+static chcemap: Lazy<Mutex<HashMap<(usize, String), String>>> = Lazy::new(|| Mutex::new(HashMap::new()));
 	
 fn main() {
 	let app = App::default().with_scheme(Scheme::Gtk);
@@ -239,10 +239,25 @@ fn main() {
 				let v: Value = map.into();
 				let mut map2: serde_json::Map<String, Value> = Map::new();
 				map2.insert("attrs".to_string(), v);
-				map2.insert("liste".to_string(), vec!["nom"].into());
+				
+				let mut vecval: Vec<serde_json::Map<String, Value>> = vec![];
+				for n in 0..24 {
+					let mut mapval: serde_json::Map<String, Value> = Map::new();
+					for mv in &model {
+						mapval.insert(mv.to_string(), chcemap.lock().unwrap()[&(n, mv.to_string())].clone().into());
+					}
+					vecval.push(mapval);
+				}
+				map2.insert("liste".to_string(), vecval.into());
 				let v2: Value = map2.into();
-				println!("{}", &chcemap.lock().unwrap()["00Nom"]);
-				println!("{}", serde_json::to_string_pretty(&v2).unwrap());
+				//println!("{:?}", &chcemap.lock().unwrap());
+				//println!("{}", &chcemap.lock().unwrap()["00nom"]);
+				//println!("{}", serde_json::to_string_pretty(&v2).unwrap());
+				let mut dlg = dialog::FileDialog::new(dialog::FileDialogType::BrowseSaveFile);
+				dlg.set_option(dialog::FileDialogOptions::SaveAsConfirm);
+				//dlg.set_filter("*.{json}");
+				dlg.show();
+				fs::write(&dlg.filename().to_string_lossy().to_string(), serde_json::to_string_pretty(&v2).unwrap()).expect("Unable to write file");
 			}
 			Some(Message::Import) => {
 				let mut dlg = dialog::FileDialog::new(dialog::FileDialogType::BrowseFile);
@@ -261,7 +276,7 @@ fn main() {
 				for n in 0..24{
 				for (x, y) in v["liste"][n].as_object().unwrap() {
 					let xs = x.as_str();
-					chcemap.lock().unwrap().insert(n.to_string() + xs, y.as_str().unwrap().to_string());
+					chcemap.lock().unwrap().insert((n, xs.to_string()), y.as_str().unwrap().to_string());
 				}
 				}
 				sender.send(Message::Show);
@@ -275,7 +290,6 @@ fn main() {
 					delete_button2.activate();
 				}
 				grp2.clear();
-				println!("AA");
 				for u in 1..25 {
 					let jj = Box::leak(u.to_string().into_boxed_str());
 					let fr = Frame::new(
@@ -288,15 +302,15 @@ fn main() {
 					for n in 0..model.len() {
 						let mut chce = Choice::default()
 							.with_pos(
-								50 + 150 * (n as i32) + WIDGET_PADDING,
+								100 + 250 * (n as i32) + WIDGET_PADDING,
 								10 + (40 + WIDGET_PADDING) * (u as i32),
 							)
 							.with_size(150, WIDGET_HEIGHT)
 							.with_label(&model[n]);
 						for y in &attrslis[&model[n]] {
-							chce.add(y, Shortcut::None, MenuFlag::Normal, move |c| {chcemap.lock().unwrap().insert(u.to_string() + &c.label(), c.choice().unwrap());});
+							chce.add(y, Shortcut::None, MenuFlag::Normal, move |c| {chcemap.lock().unwrap().insert((u, c.label()), c.choice().unwrap());});
 						}
-						if let Some(val) = chcemap.lock().unwrap().get(&(u.to_string()+ &chce.label())){
+						if let Some(val) = chcemap.lock().unwrap().get(&(u, chce.label())){
 							for x in chce.clone() {
 								if let Some(l) = x.label(){
 								if &l == val {
