@@ -244,7 +244,11 @@ fn main() {
 				for n in 0..24 {
 					let mut mapval: serde_json::Map<String, Value> = Map::new();
 					for mv in &model {
-						mapval.insert(mv.to_string(), chcemap.lock().unwrap()[&(n, mv.to_string())].clone().into());
+						if let Some(q) = chcemap.lock().unwrap().get(&(n, mv.to_string())) {
+							mapval.insert(mv.to_string(), q.clone().into());
+						} else
+						{ println!("Erreur clé non trouvée");}
+						
 					}
 					vecval.push(mapval);
 				}
@@ -257,7 +261,11 @@ fn main() {
 				dlg.set_option(dialog::FileDialogOptions::SaveAsConfirm);
 				//dlg.set_filter("*.{json}");
 				dlg.show();
-				fs::write(&dlg.filename().to_string_lossy().to_string(), serde_json::to_string_pretty(&v2).unwrap()).expect("Unable to write file");
+						if !dlg.filename().to_string_lossy().to_string().is_empty() {
+						  fs::write(&dlg.filename().to_string_lossy().to_string(), serde_json::to_string_pretty(&v2).unwrap()).expect("Unable to write file");
+						} else
+						{ println!("Erreur fichier non entré");}
+				
 			}
 			Some(Message::Import) => {
 				let mut dlg = dialog::FileDialog::new(dialog::FileDialogType::BrowseFile);
