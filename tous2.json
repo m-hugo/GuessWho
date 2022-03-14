@@ -1,0 +1,196 @@
+{
+  "attrs": {
+    "Barbe": [
+      "Oui",
+      "Non"
+    ],
+    "Chauve": [
+      "Oui",
+      "Non",
+      "Chapeau"
+    ],
+    "Lunettes": [
+      "Oui",
+      "Non"
+    ],
+    "Moustache": [
+      "Oui",
+      "Non"
+    ],
+    "Nom": [
+      "Samuel",
+      "Léon",
+      "Simon",
+      "Luc",
+      "Martin",
+      "Clara",
+      "Anita",
+      "Alfred",
+      "Suzane",
+      "Roméo",
+      "Omar",
+      "Manu",
+      "Lucas",
+      "Mario",
+      "Jérémie",
+      "Max",
+      "Timéo",
+      "Oscar",
+      "Eric",
+      "Maria",
+      "Tony",
+      "Félix",
+      "Charlie",
+      "Anna"
+    ]
+  },
+  "liste": [
+    {},
+    {
+      "Barbe": "Non",
+      "Chauve": "Oui",
+      "Lunettes": "Oui",
+      "Moustache": "Non",
+      "Nom": "Samuel"
+    },
+    {
+      "Barbe": "Non",
+      "Chauve": "Non",
+      "Lunettes": "Oui",
+      "Moustache": "Non",
+      "Nom": "Léon"
+    },
+    {
+      "Barbe": "Non",
+      "Chauve": "Non",
+      "Lunettes": "Oui",
+      "Moustache": "Non",
+      "Nom": "Simon"
+    },
+    {
+      "Barbe": "Oui",
+      "Chauve": "Non",
+      "Lunettes": "Non",
+      "Moustache": "Non",
+      "Nom": "Luc"
+    },
+    {
+      "Barbe": "Non",
+      "Chauve": "Chapeau",
+      "Lunettes": "Non",
+      "Moustache": "Non",
+      "Nom": "Martin"
+    },
+    {
+      "Barbe": "Non",
+      "Chauve": "Chapeau",
+      "Lunettes": "Oui",
+      "Moustache": "Non",
+      "Nom": "Clara"
+    },
+    {
+      "Barbe": "Non",
+      "Chauve": "Chapeau",
+      "Lunettes": "Non",
+      "Moustache": "Non",
+      "Nom": "Anita"
+    },
+    {
+      "Barbe": "Non",
+      "Chauve": "Non",
+      "Lunettes": "Non",
+      "Moustache": "Oui",
+      "Nom": "Alfred"
+    },
+    {
+      "Chauve": "Non",
+      "Lunettes": "Non",
+      "Moustache": "Non",
+      "Nom": "Suzane"
+    },
+    {
+      "Chauve": "Oui",
+      "Lunettes": "Non",
+      "Moustache": "Oui",
+      "Nom": "Roméo"
+    },
+    {
+      "Chauve": "Non",
+      "Lunettes": "Non",
+      "Moustache": "Non",
+      "Nom": "Omar"
+    },
+    {
+      "Chauve": "Non",
+      "Lunettes": "Non",
+      "Moustache": "Oui",
+      "Nom": "Manu"
+    },
+    {
+      "Chauve": "Oui",
+      "Lunettes": "Non",
+      "Moustache": "Non",
+      "Nom": "Lucas"
+    },
+    {
+      "Chauve": "Non",
+      "Lunettes": "Non",
+      "Moustache": "Non",
+      "Nom": "Mario"
+    },
+    {
+      "Chauve": "Chapeau",
+      "Lunettes": "Non",
+      "Moustache": "Non",
+      "Nom": "Jérémie"
+    },
+    {
+      "Chauve": "Non",
+      "Lunettes": "Non",
+      "Moustache": "Oui",
+      "Nom": "Max"
+    },
+    {
+      "Chauve": "Oui",
+      "Lunettes": "Oui",
+      "Moustache": "Non",
+      "Nom": "Timéo"
+    },
+    {
+      "Chauve": "Non",
+      "Lunettes": "Non",
+      "Moustache": "Non",
+      "Nom": "Oscar"
+    },
+    {
+      "Chauve": "Non",
+      "Lunettes": "Non",
+      "Moustache": "Non",
+      "Nom": "Eric"
+    },
+    {
+      "Chauve": "Chapeau",
+      "Lunettes": "Non",
+      "Moustache": "Non",
+      "Nom": "Maria"
+    },
+    {
+      "Chauve": "Oui",
+      "Lunettes": "Non",
+      "Moustache": "Non",
+      "Nom": "Tony"
+    },
+    {
+      "Chauve": "Chapeau",
+      "Lunettes": "Non",
+      "Moustache": "Non",
+      "Nom": "Félix"
+    },
+    {
+      "Chauve": "Non",
+      "Lunettes": "Non",
+      "Moustache": "Oui",
+      "Nom": "Charlie"
+    }
+  ]
+}
