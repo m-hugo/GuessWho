@@ -1,0 +1,223 @@
+{
+  "attrs": {
+    "Barbe": [
+      "Oui",
+      "Non"
+    ],
+    "Chauve": [
+      "Oui",
+      "Non",
+      "Chapeau"
+    ],
+    "Lunettes": [
+      "Oui",
+      "Non"
+    ],
+    "Moustache": [
+      "Oui",
+      "Non"
+    ],
+    "Nom": [
+      "Samuel",
+      "Léon",
+      "Simon",
+      "Luc",
+      "Martin",
+      "Clara",
+      "Anita",
+      "Alfred",
+      "Suzane",
+      "Roméo",
+      "Omar",
+      "Manu",
+      "Lucas",
+      "Mario",
+      "Jérémie",
+      "Max",
+      "Timéo",
+      "Oscar",
+      "Eric",
+      "Maria",
+      "Tony",
+      "Félix",
+      "Charlie",
+      "Anna"
+    ]
+  },
+  "liste": [
+    {
+      "Barbe": "Non",
+      "Chauve": "Oui",
+      "Lunettes": "Oui",
+      "Moustache": "Non",
+      "Nom": "Samuel",
+      "image": "./personnages/imageonline-co-split-image-1.png"
+    },
+    {
+      "Barbe": "Non",
+      "Chauve": "Non",
+      "Lunettes": "Oui",
+      "Moustache": "Non",
+      "Nom": "Léon",
+      "image": "./personnages/imageonline-co-split-image-2.png"
+    },
+    {
+      "Barbe": "Non",
+      "Chauve": "Non",
+      "Lunettes": "Oui",
+      "Moustache": "Non",
+      "Nom": "Simon",
+      "image": "./personnages/imageonline-co-split-image-3.png"
+    },
+    {
+      "Barbe": "Oui",
+      "Chauve": "Non",
+      "Lunettes": "Non",
+      "Moustache": "Non",
+      "Nom": "Luc",
+      "image": "./personnages/imageonline-co-split-image-5.png"
+    },
+    {
+      "Barbe": "Non",
+      "Chauve": "Chapeau",
+      "Lunettes": "Non",
+      "Moustache": "Non",
+      "Nom": "Martin",
+      "image": "./personnages/imageonline-co-split-image-4.png"
+    },
+    {
+      "Barbe": "Non",
+      "Chauve": "Chapeau",
+      "Lunettes": "Oui",
+      "Moustache": "Non",
+      "Nom": "Clara",
+      "image": "./personnages/imageonline-co-split-image-6.png"
+    },
+    {
+      "Barbe": "Non",
+      "Chauve": "Non",
+      "Lunettes": "Non",
+      "Moustache": "Non",
+      "Nom": "Anita",
+      "image": "./personnages/imageonline-co-split-image-7.png"
+    },
+    {
+      "Barbe": "Non",
+      "Chauve": "Non",
+      "Lunettes": "Non",
+      "Moustache": "Oui",
+      "Nom": "Alfred"
+    },
+    {
+      "Barbe": "Oui",
+      "Chauve": "Non",
+      "Lunettes": "Non",
+      "Moustache": "Non",
+      "Nom": "Suzane"
+    },
+    {
+      "Barbe": "Oui",
+      "Chauve": "Oui",
+      "Lunettes": "Non",
+      "Moustache": "Oui",
+      "Nom": "Roméo"
+    },
+    {
+      "Barbe": "Oui",
+      "Chauve": "Non",
+      "Lunettes": "Non",
+      "Moustache": "Non",
+      "Nom": "Omar"
+    },
+    {
+      "Barbe": "Oui",
+      "Chauve": "Non",
+      "Lunettes": "Non",
+      "Moustache": "Oui",
+      "Nom": "Manu"
+    },
+    {
+      "Barbe": "Oui",
+      "Chauve": "Oui",
+      "Lunettes": "Non",
+      "Moustache": "Non",
+      "Nom": "Lucas"
+    },
+    {
+      "Barbe": "Oui",
+      "Chauve": "Non",
+      "Lunettes": "Non",
+      "Moustache": "Non",
+      "Nom": "Mario"
+    },
+    {
+      "Barbe": "Oui",
+      "Chauve": "Chapeau",
+      "Lunettes": "Non",
+      "Moustache": "Non",
+      "Nom": "Jérémie"
+    },
+    {
+      "Barbe": "Oui",
+      "Chauve": "Non",
+      "Lunettes": "Non",
+      "Moustache": "Oui",
+      "Nom": "Max"
+    },
+    {
+      "Barbe": "Oui",
+      "Chauve": "Oui",
+      "Lunettes": "Oui",
+      "Moustache": "Non",
+      "Nom": "Timéo"
+    },
+    {
+      "Barbe": "Oui",
+      "Chauve": "Non",
+      "Lunettes": "Non",
+      "Moustache": "Non",
+      "Nom": "Oscar"
+    },
+    {
+      "Barbe": "Oui",
+      "Chauve": "Non",
+      "Lunettes": "Non",
+      "Moustache": "Non",
+      "Nom": "Eric"
+    },
+    {
+      "Barbe": "Oui",
+      "Chauve": "Chapeau",
+      "Lunettes": "Non",
+      "Moustache": "Non",
+      "Nom": "Maria"
+    },
+    {
+      "Barbe": "Oui",
+      "Chauve": "Oui",
+      "Lunettes": "Non",
+      "Moustache": "Non",
+      "Nom": "Tony"
+    },
+    {
+      "Barbe": "Oui",
+      "Chauve": "Chapeau",
+      "Lunettes": "Non",
+      "Moustache": "Non",
+      "Nom": "Félix"
+    },
+    {
+      "Barbe": "Oui",
+      "Chauve": "Non",
+      "Lunettes": "Non",
+      "Moustache": "Oui",
+      "Nom": "Charlie"
+    },
+    {
+      "Barbe": "Oui",
+      "Chauve": "Oui",
+      "Lunettes": "Oui",
+      "Moustache": "Oui"
+    }
+  ]
+}

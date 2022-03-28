@@ -1,15 +1,12 @@
-use fltk::frame::*;
+use fltk::image::PngImage;
 use fltk::menu::*;
-use fltk::text::TextDisplay;
 use fltk::{app::*, browser::*, button::*, dialog, enums::*, group::*, input::*, prelude::*, window::*};
+use once_cell::sync::Lazy;
 use serde_json::Map;
 use serde_json::Value;
 use std::collections::HashMap;
 use std::fs;
 use std::io::BufReader;
-use std::cell::RefCell;
-use std::rc::Rc;
-use once_cell::sync::Lazy; // 1.3.1
 use std::sync::Mutex;
 const WIDGET_WIDTH: i32 = 70;
 const WIDGET_HEIGHT: i32 = 25;
@@ -36,8 +33,8 @@ fn tryfile(f: &str) -> Result<Value, Box<dyn std::error::Error>> {
 	let v: Value = serde_json::from_reader(reader)?;
 	Ok(v)
 }
-static chcemap: Lazy<Mutex<HashMap<(usize, String), String>>> = Lazy::new(|| Mutex::new(HashMap::new()));
-	
+static CHCEMAP: Lazy<Mutex<HashMap<(usize, String), String>>> = Lazy::new(|| Mutex::new(HashMap::new()));
+
 fn main() {
 	let app = App::default().with_scheme(Scheme::Gtk);
 	let mut wind = Window::default().with_label("Generateur");
@@ -117,7 +114,7 @@ fn main() {
 		10,
 		35,
 		delete_button2.x() + delete_button2.width() + WIDGET_PADDING,
-		create_button.y() + create_button.height() + WIDGET_PADDING,
+		create_button.y() + create_button.height() + WIDGET_PADDING - 25,
 		"Personnages\t\t",
 	);
 	grp2.set_type(ScrollType::Both);
@@ -126,7 +123,8 @@ fn main() {
 	//pack.end();
 	let mut attrslis: HashMap<String, Vec<String>> = HashMap::new();
 	attrslis.insert("".to_string(), vec![]);
-	let mut model = vec![
+	let mut model = vec![];
+	/*let mut model = vec![
 		"Nom".to_string(),
 		"Chauve".to_string(),
 		"Lunettes".to_string(),
@@ -135,10 +133,9 @@ fn main() {
 	attrslis.insert("Nom".to_string(), vec![]);
 	attrslis.insert("Chauve".to_string(), vec![]);
 	attrslis.insert("Lunettes".to_string(), vec![]);
-	attrslis.insert("Lunettes2".to_string(), vec![]);
+	attrslis.insert("Lunettes2".to_string(), vec![]);*/
 
 	let mut attractu = "".to_string();
-	//println!("{}", model[attractu as usize]);
 	sender.send(Message::Show);
 
 	wind.set_size(
@@ -175,10 +172,13 @@ fn main() {
 					model[index] = attr_input.value();
 					let oldcont = attrslis.remove(&selected_name).unwrap();
 					attrslis.insert(attr_input.value(), oldcont);
+					attractu = attr_input.value();
 					list_browser.insert(list_browser.value(), &attr_input.value());
 					list_browser.select(list_browser.value() - 1);
 					list_browser.remove(list_browser.value() + 1);
 					attr_input.set_value("");
+					println!("{:?}", CHCEMAP.lock().unwrap());
+					sender.send(Message::Show);
 				}
 			}
 			Some(Message::Delete) => {
@@ -188,7 +188,6 @@ fn main() {
 				attrslis.remove(&selected_name);
 				sender.send(Message::Show);
 				sender.send(Message::Select);
-				println!("{:?}", chcemap.lock().unwrap());
 			}
 			Some(Message::Select) => {
 				if list_browser.value() == 0 {
@@ -196,6 +195,7 @@ fn main() {
 					update_button.deactivate();
 					create_button2.deactivate();
 					delete_button.deactivate();
+					sender.send(Message::Select2);
 				} else {
 					attractu = list_browser.text(list_browser.value()).unwrap();
 					update_button.activate();
@@ -239,33 +239,38 @@ fn main() {
 				let v: Value = map.into();
 				let mut map2: serde_json::Map<String, Value> = Map::new();
 				map2.insert("attrs".to_string(), v);
-				
+
 				let mut vecval: Vec<serde_json::Map<String, Value>> = vec![];
-				for n in 0..24 {
-					let mut mapval: serde_json::Map<String, Value> = Map::new();
-					for mv in &model {
-						if let Some(q) = chcemap.lock().unwrap().get(&(n, mv.to_string())) {
-							mapval.insert(mv.to_string(), q.clone().into());
-						} else
-						{ println!("Erreur clé non trouvée");}
-						
+				if let Ok(c) = CHCEMAP.lock() {
+					for n in 0..24 {
+						let mut mapval: serde_json::Map<String, Value> = Map::new();
+						if let Some(ff) = c.get(&(n, "image".to_string())) {
+							mapval.insert("image".to_string(), ff.clone().into());
+						} else {
+							println!("erreur export image, {}", n);
+						}
+						for mv in &model {
+							if let Some(ff) = c.get(&(n, mv.to_string())) {
+								mapval.insert(mv.to_string(), ff.clone().into());
+							} else {
+								println!("erreur export {}, {} in {:?}", n, mv, c);
+							}
+						}
+						vecval.push(mapval);
 					}
-					vecval.push(mapval);
 				}
 				map2.insert("liste".to_string(), vecval.into());
 				let v2: Value = map2.into();
-				//println!("{:?}", &chcemap.lock().unwrap());
-				//println!("{}", &chcemap.lock().unwrap()["00nom"]);
-				//println!("{}", serde_json::to_string_pretty(&v2).unwrap());
 				let mut dlg = dialog::FileDialog::new(dialog::FileDialogType::BrowseSaveFile);
 				dlg.set_option(dialog::FileDialogOptions::SaveAsConfirm);
-				//dlg.set_filter("*.{json}");
 				dlg.show();
-						if !dlg.filename().to_string_lossy().to_string().is_empty() {
-						  fs::write(&dlg.filename().to_string_lossy().to_string(), serde_json::to_string_pretty(&v2).unwrap()).expect("Unable to write file");
-						} else
-						{ println!("Erreur fichier non entré");}
-				
+				if !dlg.filename().to_string_lossy().to_string().is_empty() {
+					fs::write(
+						&dlg.filename().to_string_lossy().to_string(),
+						serde_json::to_string_pretty(&v2).unwrap(),
+					)
+					.expect("Unable to write file");
+				}
 			}
 			Some(Message::Import) => {
 				let mut dlg = dialog::FileDialog::new(dialog::FileDialogType::BrowseFile);
@@ -273,21 +278,32 @@ fn main() {
 				dlg.set_filter("*.{json}");
 				dlg.show();
 				let filename = dlg.filename().to_string_lossy().to_string();
-				let v = tryfile(&filename).unwrap();
-				model.clear();
-				attrslis.clear();
-				for (x, y) in v["attrs"].as_object().unwrap() {
-					let xs = x.as_str().to_string();
-					model.push(xs.clone());
-					attrslis.insert(xs, y.as_array().unwrap().iter().map(|a| a.as_str().unwrap().to_string()).collect());
+				if let Ok(v) = tryfile(&filename) {
+					model.clear();
+					attrslis.clear();
+					for (x, y) in v["attrs"].as_object().unwrap() {
+						let xs = x.as_str().to_string();
+						model.push(xs.clone());
+						attrslis.insert(
+							xs,
+							y.as_array()
+								.unwrap()
+								.iter()
+								.map(|a| a.as_str().unwrap().to_string())
+								.collect(),
+						);
+					}
+					for n in 0..24 {
+						for (x, y) in v["liste"][n].as_object().unwrap() {
+							let xs = x.as_str();
+							CHCEMAP
+								.lock()
+								.unwrap()
+								.insert((n, xs.to_string()), y.as_str().unwrap().to_string());
+						}
+					}
+					sender.send(Message::Show);
 				}
-				for n in 0..24{
-				for (x, y) in v["liste"][n].as_object().unwrap() {
-					let xs = x.as_str();
-					chcemap.lock().unwrap().insert((n, xs.to_string()), y.as_str().unwrap().to_string());
-				}
-				}
-				sender.send(Message::Show);
 			}
 			Some(Message::Select2) => {
 				if list_browser2.value() == 0 {
@@ -298,37 +314,59 @@ fn main() {
 					delete_button2.activate();
 				}
 				grp2.clear();
-				for u in 1..25 {
-					let jj = Box::leak(u.to_string().into_boxed_str());
-					let fr = Frame::new(
-						10 + WIDGET_PADDING,
-						10 + (40 + WIDGET_PADDING) * (u as i32),
-						10,
-						WIDGET_HEIGHT,
-						Some(&*jj),
-					);
+				for u in 0..24 {
+					let yeq = 10 + (1 + (model.len() / 2)) * (30 + (WIDGET_PADDING as usize)) * (u);
+					//let jj = Box::leak(u.to_string().into_boxed_str());
+					let mut fr = Button::new(10, (yeq).try_into().unwrap(), 50, 75, None);
 					for n in 0..model.len() {
 						let mut chce = Choice::default()
 							.with_pos(
-								100 + 250 * (n as i32) + WIDGET_PADDING,
-								10 + (40 + WIDGET_PADDING) * (u as i32),
+								110 + 250 * ((n % 2) as i32) + WIDGET_PADDING,
+								(yeq + 30 * (n / 2)).try_into().unwrap(),
 							)
 							.with_size(150, WIDGET_HEIGHT)
 							.with_label(&model[n]);
 						for y in &attrslis[&model[n]] {
-							chce.add(y, Shortcut::None, MenuFlag::Normal, move |c| {chcemap.lock().unwrap().insert((u, c.label()), c.choice().unwrap());});
+							chce.add(y, Shortcut::None, MenuFlag::Normal, move |c| {
+								CHCEMAP.lock().unwrap().insert((u, c.label()), c.choice().unwrap());
+							});
 						}
-						if let Some(val) = chcemap.lock().unwrap().get(&(u, chce.label())){
+						if let Some(val) = CHCEMAP.lock().unwrap().get(&(u, chce.label())) {
 							for x in chce.clone() {
-								if let Some(l) = x.label(){
-								if &l == val {
-									chce.set_item(&x);
-								}
+								if let Some(l) = x.label() {
+									if &l == val {
+										chce.set_item(&x);
+									}
 								}
 							}
 						}
 						grp2.add(&chce);
 					}
+
+					if let Some(val) = CHCEMAP.lock().unwrap().get(&(u, "image".to_string())) {
+						fr.set_image_scaled(Some(PngImage::load("../".to_string() + val).unwrap()));
+						fr.redraw();
+					} else {
+						fr.set_image::<PngImage>(None);
+					}
+
+					fr.set_callback(move |b| {
+						let mut dlg = dialog::FileDialog::new(dialog::FileDialogType::BrowseFile);
+						dlg.set_option(dialog::FileDialogOptions::NoOptions);
+						dlg.set_filter("*.{png}");
+						dlg.show();
+						let path = dlg.filename();
+						let prefix = fs::canonicalize("../").unwrap();
+						if let Ok(p) = path.strip_prefix(&prefix) {
+							let filename = "./".to_string() + &p.to_string_lossy();
+							println!("{}", filename);
+							b.set_image_scaled(Some(PngImage::load("../".to_string() + &filename).unwrap()));
+							CHCEMAP.lock().unwrap().insert((u, "image".to_string()), filename);
+							b.redraw();
+						} else {
+							println!("{:?} pas dans {:?}", path, prefix);
+						}
+					});
 					grp2.add(&fr);
 				}
 			}
