@@ -174,59 +174,68 @@
       "image": "./personnages/imageonline-co-split-image-16.png"
     },
     {
-      "Barbe": "Oui",
+      "Barbe": "Non",
       "Chauve": "Oui",
       "Lunettes": "Oui",
       "Moustache": "Non",
-      "Nom": "Timéo"
+      "Nom": "Timéo",
+      "image": "./personnages/imageonline-co-split-image-17.png"
     },
     {
-      "Barbe": "Oui",
+      "Barbe": "Non",
       "Chauve": "Non",
       "Lunettes": "Non",
       "Moustache": "Non",
-      "Nom": "Oscar"
+      "Nom": "Oscar",
+      "image": "./personnages/imageonline-co-split-image-18.png"
     },
     {
-      "Barbe": "Oui",
+      "Barbe": "Non",
       "Chauve": "Non",
       "Lunettes": "Non",
       "Moustache": "Non",
-      "Nom": "Eric"
+      "Nom": "Eric",
+      "image": "./personnages/imageonline-co-split-image-19.png"
     },
     {
-      "Barbe": "Oui",
+      "Barbe": "Non",
       "Chauve": "Chapeau",
       "Lunettes": "Non",
       "Moustache": "Non",
-      "Nom": "Maria"
+      "Nom": "Maria",
+      "image": "./personnages/imageonline-co-split-image-20.png"
     },
     {
       "Barbe": "Oui",
       "Chauve": "Oui",
       "Lunettes": "Non",
       "Moustache": "Non",
-      "Nom": "Tony"
+      "Nom": "Tony",
+      "image": "./personnages/imageonline-co-split-image-21.png"
     },
     {
-      "Barbe": "Oui",
+      "Barbe": "Non",
       "Chauve": "Chapeau",
       "Lunettes": "Non",
       "Moustache": "Non",
-      "Nom": "Félix"
+      "Nom": "Félix",
+      "image": "./personnages/imageonline-co-split-image-22.png"
     },
     {
-      "Barbe": "Oui",
+      "Barbe": "Non",
       "Chauve": "Non",
       "Lunettes": "Non",
       "Moustache": "Oui",
-      "Nom": "Charlie"
+      "Nom": "Charlie",
+      "image": "./personnages/imageonline-co-split-image-23.png"
     },
     {
-      "Barbe": "Oui",
-      "Chauve": "Oui",
-      "Lunettes": "Oui",
-      "Moustache": "Oui"
+      "Barbe": "Non",
+      "Chauve": "Non",
+      "Lunettes": "Non",
+      "Moustache": "Non",
+      "Nom": "Anna",
+      "image": "./personnages/imageonline-co-split-image-24.png"
     }
   ]
 }

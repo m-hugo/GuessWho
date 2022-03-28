@@ -188,7 +188,7 @@ fn loadquestions(menu: &mut menu::MenuButton, s: Sender<Message>, v: &Value) -> 
 	//println!("{}", nom);
 	//Nom d'un personnage choisi au hasard
 
-	let linoms = v["attrs"]["nom"].as_array()?;
+	let linoms = v["attrs"]["Nom"].as_array()?;
 	let id = rand::thread_rng().gen_range(0..linoms.len());
 	let perso = &v["liste"].as_array()?[id];
 	let _pasgrave = menu.clear_submenu(menu.find_index("Question"));
@@ -236,22 +236,11 @@ fn loadquestions(menu: &mut menu::MenuButton, s: Sender<Message>, v: &Value) -> 
 	Some((qli, rli))
 }
 
-fn mainmaker(s: Sender<Message>) -> (Vec<Frame>, Vec<Button>, Vec<Vec<Button>>, Button, Button) {
+fn mainmaker(s: Sender<Message>) -> (Scroll, Vec<Vec<Button>>) {
 	let mut scrollgrp = Scroll::new(0, 31, 89 * 6, 170 * 4 + 30, "Choisir Planche");
 	scrollgrp.set_type(ScrollType::Vertical);
 
-	let mut frame: Vec<Frame> = vec![];
-	let mut b: Vec<Button> = vec![];
-	for j in 0..4 {
-		for i in 0..6 {
-			frame.push(Frame::new(90 * i, 170 * j + 30, 89, 146, None));
-			let mut tmpb = Button::new(90 * i + 2, 170 * j + 148 + 30, 89, 20, "Renverse");
-			tmpb.set_color(Color::from_hex(0x42A5F5)); //0x42A5F5
-			tmpb.emit(s, Message::Switch(b.len()));
-			tmpb.hide();
-			b.push(tmpb);
-		}
-	}
+	
 
 	let mut piles: Vec<Vec<Button>> = vec![];
 	for k in 0..10 {
@@ -280,7 +269,7 @@ fn mainmaker(s: Sender<Message>) -> (Vec<Frame>, Vec<Button>, Vec<Vec<Button>>, 
 
 	scrollgrp.end();
 
-	(frame, b, piles, chargesauv, chargefile)
+	(scrollgrp, piles)
 }
 
 fn menumaker(s: Sender<Message>) -> (menu::MenuButton, CheckButton, Button, Button) {
@@ -417,8 +406,21 @@ fn main() {
 		.center_screen()
 		.with_label("Qui est-ce ?");
 
-	let (mut frame, mut b, mut piles, mut chargesauv, mut chargefile) = mainmaker(s);
+	let (mut scrollgrp, mut piles) = mainmaker(s);
 	let (mut menu, check, mut vali, mut compte) = menumaker(s);
+
+	let mut frame: Vec<Frame> = vec![];
+	let mut b: Vec<Button> = vec![];
+	for j in 0..4 {
+		for i in 0..6 {
+			frame.push(Frame::new(90 * i, 170 * j + 30, 89, 146, None));
+			let mut tmpb = Button::new(90 * i + 2, 170 * j + 148 + 30, 89, 20, "Renverse");
+			tmpb.set_color(Color::from_hex(0x42A5F5)); //0x42A5F5
+			tmpb.emit(s, Message::Switch(b.len()));
+			tmpb.hide();
+			b.push(tmpb);
+		}
+	}
 
 	let pilesaddr = getaddrs();
 
@@ -519,8 +521,7 @@ fn main() {
 					hidevec(&mut piles);
 					compte.show();
 					vali.show();
-					chargefile.hide();
-					chargesauv.hide();
+					scrollgrp.hide();
 					match loadquestions(&mut menu, s, mapile) {
 						Some((x, y)) => {
 							qli = x;
@@ -536,8 +537,7 @@ fn main() {
 					hide(&mut frame);
 					compte.hide();
 					vali.hide();
-					chargefile.show();
-					chargesauv.show();
+					scrollgrp.show();
 					if let Err(e) = showdecks(&mut piles, &pilesaddr) {
 						println!("{:?}", e);
 						fnerror("Les cartes ne peuvent pas être affichées, voir terminal");
