@@ -344,12 +344,13 @@ fn main() {
 					}
 
 					if let Some(val) = CHCEMAP.lock().unwrap().get(&(u, "image".to_string())) {
+						//println!("{:?}", "../".to_string() + val);
 						fr.set_image_scaled(Some(PngImage::load("../".to_string() + val).unwrap()));
 						fr.redraw();
 					} else {
 						fr.set_image::<PngImage>(None);
 					}
-
+					use std::path::PathBuf;
 					fr.set_callback(move |b| {
 						let mut dlg = dialog::FileDialog::new(dialog::FileDialogType::BrowseFile);
 						dlg.set_option(dialog::FileDialogOptions::NoOptions);
@@ -357,14 +358,15 @@ fn main() {
 						dlg.show();
 						let path = dlg.filename();
 						let prefix = fs::canonicalize("../").unwrap();
-						if let Ok(p) = path.strip_prefix(&prefix) {
-							let filename = "./".to_string() + &p.to_string_lossy();
+						let d = if let Some(g) = prefix.to_str().unwrap().strip_prefix("\\\\?\\"){PathBuf::from(g)} else {prefix};
+						if let Ok(p) = path.strip_prefix(&d) {
+							let filename = "./".to_string() + &p.to_string_lossy().replace("\\", "/");
 							println!("{}", filename);
 							b.set_image_scaled(Some(PngImage::load("../".to_string() + &filename).unwrap()));
 							CHCEMAP.lock().unwrap().insert((u, "image".to_string()), filename);
 							b.redraw();
 						} else {
-							println!("{:?} pas dans {:?}", path, prefix);
+							println!("{:?} pas dans {:?}", path, d);
 						}
 					});
 					grp2.add(&fr);
