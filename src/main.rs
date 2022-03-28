@@ -108,10 +108,10 @@ fn etalepile(frame: &mut Vec<Frame>, val: &Value, b: &mut Vec<Button>) {
 		b[n].show();
 		frame[n].show();
 		if let Some(vv) = val["liste"][n]["image"].as_str() {
-			frame[n].set_image(Some(PngImage::load(vv.to_string()).unwrap())); //deja testé dans showdecks()
+			frame[n].set_image_scaled(Some(PngImage::load(vv.to_string()).unwrap())); //deja testé dans showdecks()
 			let mut im = PngImage::load(vv.to_string()).unwrap(); //idem
 			im.inactive();
-			frame[n].set_deimage(Some(im));
+			frame[n].set_deimage_scaled(Some(im));
 			frame[n].redraw();
 		}
 	}
@@ -167,7 +167,7 @@ fn showdecks(piles: &mut Vec<Vec<Button>>, addr: &[Value]) -> Result<(), Box<dyn
 		for k in 0..addr.len() {
 			for n in 0..24 {
 				if let Some(vv) = addr[k]["liste"][n]["image"].as_str() {
-					piles[k][n].set_image(Some(PngImage::load(vv.to_string())?));
+					piles[k][n].set_image_scaled(Some(PngImage::load(vv.to_string())?));
 					piles[k][n].show();
 					piles[k][n].redraw();
 				} else {
