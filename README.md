@@ -6,17 +6,20 @@ Pour lancer le generateur
 2) ouvrez un terminal dans le dossier generator et tapez cargo run
 
 un fichier json jj.json est fourni dans ce dossier et peut etre importé avec le bouton importer pour avoir une base à modifier
+
 sinon vous pouvez commencer de zero (un attribut "Nom" est obligatoire)
 
 pour ajouter des attributs, tapez du texte dans la boite Ajout de gauche et cliquez sur Create de gauche
+
 pour ajouter des options pour un attribut, cliquez sur l'attribut, tapez du texte dans la boite Ajout de droite et cliquez sur Create de droite
 
 Cliquez ensuite sur l'onglet Personnages pour remplir les cases de personnages avec leurs attributs à l'aide des menus déroulants
+
 le bouton à gauche des menus permet d'importer les images qui doivent etre prealablement placées dans l'arborescence du projet
 
 vous pouvez ensuite exporter votre planche dans un fichier avec le bouton Export et si vous l'enregistrez dans la racine du projet, elle sera automatiquement importée quand vous lancerez le jeu
 
-
+====================================
 
 Pour lancer le jeu
 1) installez une version recente de rust https://www.rust-lang.org/tools/install
