@@ -8,7 +8,7 @@ use fltk::group::{Scroll, ScrollType};
 
 use fltk::{
 	app,
-	button::{Button, CheckButton},
+	button::*,
 	enums::{Color, Shortcut},
 	frame::Frame,
 	image::PngImage,
@@ -27,6 +27,8 @@ use rand::Rng;
 
 use serde_json::Value;
 
+use reqwest::blocking::Client;
+
 #[derive(Clone, Copy)]
 pub enum Message {
 	//Question(usize),
@@ -43,12 +45,20 @@ pub enum Message {
 	Mode(MODE),
 }
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Debug, PartialEq)]
 pub enum MODE {
 	ET,
-	OR,
+	OU,
 	XOR,
 }
+
+use once_cell::sync::Lazy;
+use std::sync::atomic::AtomicBool;
+use std::sync::Mutex;
+
+static multiplayer: Lazy<Mutex<bool>> = Lazy::new(|| Mutex::new(false));
+static servme: Lazy<Mutex<String>> = Lazy::new(|| Mutex::new("".to_string()));
+static servadv: Lazy<Mutex<String>> = Lazy::new(|| Mutex::new("".to_string()));
 
 fn getaddrs() -> Vec<Value> {
 	let mut addrs: Vec<Value> = vec![];
@@ -56,7 +66,7 @@ fn getaddrs() -> Vec<Value> {
 		let u = file.as_ref().unwrap().file_name();
 		if u.to_str().unwrap().contains('.') && u.to_str().unwrap().split('.').nth(1).unwrap() == "json" {
 			if let Ok(v) = tryfile(&u.into_string().unwrap()) {
-				if v["liste"][0]["image"].as_str().is_some(){
+				if v["liste"][0]["image"].as_str().is_some() {
 					addrs.push(v);
 				}
 			}
@@ -103,9 +113,8 @@ fn quitter(s: Sender<Message>) {
 	rester.set_callback(move |_| WidgetBase::delete(windpop.clone()));
 }
 
-fn etalepile(frame: &mut Vec<Frame>, val: &Value, b: &mut Vec<Button>) {
+fn etalepile(frame: &mut Vec<Frame>, val: &Value) {
 	for n in 0..24 {
-		b[n].show();
 		frame[n].show();
 		if let Some(vv) = val["liste"][n]["image"].as_str() {
 			frame[n].set_image_scaled(Some(PngImage::load(vv.to_string()).unwrap())); //deja testé dans showdecks()
@@ -117,11 +126,19 @@ fn etalepile(frame: &mut Vec<Frame>, val: &Value, b: &mut Vec<Button>) {
 	}
 }
 
-fn toggle(frame: &mut Frame) {
-	if frame.active() {
-		frame.deactivate();
+use reqwest::blocking::get;
+
+fn toggle(frame: &mut Vec<Frame>, n: usize) {
+	if frame[n].active() {
+		frame[n].deactivate();
+		if *multiplayer.lock().unwrap() {
+			get(format!("{}/jsons/{}/couché/true", *servme.lock().unwrap(), n)).unwrap();
+		}
 	} else {
-		frame.activate();
+		frame[n].activate();
+		if *multiplayer.lock().unwrap() {
+			get(format!("{}/jsons/{}/couché/false", *servme.lock().unwrap(), n)).unwrap();
+		}
 	}
 }
 
@@ -223,10 +240,10 @@ fn loadquestions(menu: &mut menu::MenuButton, s: Sender<Message>, v: &Value) -> 
 		Shortcut::None,
 		menu::MenuFlag::Radio,
 		s,
-		Message::Mode(MODE::OR),
+		Message::Mode(MODE::OU),
 	);
 	menu.add_emit(
-		"Question/Mode \"ou excl\"",
+		"Question/Mode \"un seul\"",
 		Shortcut::None,
 		menu::MenuFlag::Radio,
 		s,
@@ -236,11 +253,10 @@ fn loadquestions(menu: &mut menu::MenuButton, s: Sender<Message>, v: &Value) -> 
 	Some((qli, rli))
 }
 
-fn mainmaker(s: Sender<Message>) -> (Scroll, Vec<Vec<Button>>) {
+use fltk::input::Input;
+fn mainmaker(s: Sender<Message>) -> (Scroll, Vec<Vec<Button>>, RadioButton, RadioButton, Input) {
 	let mut scrollgrp = Scroll::new(0, 31, 89 * 6, 170 * 4 + 30, "Choisir Planche");
 	scrollgrp.set_type(ScrollType::Vertical);
-
-	
 
 	let mut piles: Vec<Vec<Button>> = vec![];
 	for k in 0..10 {
@@ -253,6 +269,19 @@ fn mainmaker(s: Sender<Message>) -> (Scroll, Vec<Vec<Button>>) {
 		}
 		piles.push(pile);
 	}
+
+	let mut multi = CheckButton::new(300, 200, 100, 20, Some("multijoueur"));
+	multi.set_callback(|b| *multiplayer.lock().unwrap() = b.is_checked());
+	multi.set_label_color(Color::from_hex(0x42A5F5));
+
+	let mut j1 = RadioButton::new(410, 200, 30, 20, Some("j1"));
+	j1.set_label_color(Color::from_hex(0x42A5F5));
+
+	let mut j2 = RadioButton::new(410, 230, 30, 20, Some("j2"));
+	j2.set_label_color(Color::from_hex(0x42A5F5));
+
+	let mut url = Input::default().with_size(100, 20).with_pos(300, 230).with_label("Url");
+	url.set_label_color(Color::from_hex(0x42A5F5));
 
 	let mut fr = Frame::new(300, 300, 100, 10, Some("← Choisissez un tas de cartes"));
 	let mut fr2 = Frame::new(300, 350, 100, 10, Some("ou chargez un fichier ↓"));
@@ -269,7 +298,7 @@ fn mainmaker(s: Sender<Message>) -> (Scroll, Vec<Vec<Button>>) {
 
 	scrollgrp.end();
 
-	(scrollgrp, piles)
+	(scrollgrp, piles, j1, j2, url)
 }
 
 fn menumaker(s: Sender<Message>) -> (menu::MenuButton, CheckButton, Button, Button) {
@@ -349,8 +378,8 @@ fn comm(
 			}
 			if !match mode {
 				MODE::ET => (!toussame || tousvrai) && (toussame || !tousvrai), //et
-				MODE::OR => (nbsame > 0 && nbvrai > 0) || (nbvrai == 0 && nbsame == 0), //ou incl
-				MODE::XOR => (nbsame == 1 && nbvrai == 1) || (nbvrai == 0 && nbsame == 0), //(nbsame == 1 && tousvrai) || (!tousvrai), //ou excl
+				MODE::OU => (nbsame > 0 && nbvrai > 0) || (nbvrai == 0 && nbsame == 0), //ou incl
+				MODE::XOR => (nbsame == 1 && nbvrai == 1) || (nbvrai == 0 && nbsame == 0), //(nbsame == 1 && tousvrai) || (!tousvrai), //un seul
 			} {
 				if first {
 					nu += 1;
@@ -364,13 +393,40 @@ fn comm(
 	}
 	nu
 }
-fn valide(qli: &mut Vec<String>, rli: &mut Vec<bool>, menu: &mut menu::MenuButton, mode: &mut MODE) -> bool {
+fn valide(qli: &mut Vec<String>, rli: &mut Vec<bool>, menu: &mut menu::MenuButton, mode: MODE, res: &mut Frame) {
+	res.set_label("");
+	if *multiplayer.lock().unwrap() {
+		get(servme.lock().unwrap().to_string() + "/jsons/qr/lock").unwrap();
+		get(servme.lock().unwrap().to_string() + &format!("/jsons/qr/mode/{:?}", mode)).unwrap();
+	}
 	let mut nb = 0_u64;
 	let mut tous = true;
 	for n in 0..qli.len() {
 		let cho = menu.find_item(&qli[n]).unwrap();
 		if cho.is_radio() && cho.value() {
-			println!("{} {}", qli[n], if rli[n] { "Vrai" } else { "Faux" });
+			//println!("{} {}", qli[n], if rli[n] { "Vrai" } else { "Faux" });
+			if *multiplayer.lock().unwrap() {
+				get(servme.lock().unwrap().to_string() + &format!("/jsons/qr/add/{}", qli[n])).unwrap();
+			}
+
+			res.set_label(&format!(
+				"{}{}",
+				res.label(),
+				if res.label().is_empty() {
+					if mode == MODE::XOR {
+						format!("Un seul parmi: {}", qli[n])
+					} else {
+						format!("{}", qli[n])
+					}
+				} else {
+					if mode == MODE::XOR {
+						format!(", {}", qli[n])
+					} else {
+						format!(" {:?} {}", mode, qli[n])
+					}
+				}
+			));
+
 			if rli[n] {
 				nb += 1;
 			//println!("test");//cho.label().unwrap()
@@ -382,11 +438,78 @@ fn valide(qli: &mut Vec<String>, rli: &mut Vec<bool>, menu: &mut menu::MenuButto
 	for el in qli {
 		menu.find_item(el).unwrap().clear();
 	}
-	match mode {
+	let mo = if match mode {
 		MODE::ET => tous,     //et
-		MODE::OR => nb > 0,   //ou incl
-		MODE::XOR => nb == 1, //ou excl
+		MODE::OU => nb > 0,   //ou incl
+		MODE::XOR => nb == 1, //un seul
+	} {
+		"Vrai"
+	} else {
+		"Faux"
+	};
+	res.set_label(&format!("{} est {}", res.label(), mo));
+
+	if *multiplayer.lock().unwrap() {
+		get(servme.lock().unwrap().to_string() + &format!("/jsons/qr/addres/{}", mo)).unwrap();
+		get(servme.lock().unwrap().to_string() + "/jsons/qr/unlock").unwrap();
 	}
+}
+fn rr(path: &str) -> Result<String, Box<dyn std::error::Error>> {
+	let url = servadv.lock()?.to_string() + path;
+	Ok(get(url)?.text()?)
+}
+fn windadv(mapile: &Value) {
+	let mut windpop = OverlayWindow::default()
+		.with_size(89 * 6, 140 * 4 + 30)
+		.center_screen()
+		.with_label("Planche Adversaire");
+
+	let mut frame: Vec<Frame> = vec![];
+	for j in 0..4 {
+		for i in 0..6 {
+			frame.push(Frame::new(90 * i, 140 * j, 89, 146, None));
+		}
+	}
+
+	let mut res = Frame::new(0, 140 * 4, 89 * 6, 30, None);
+	res.set_label_color(Color::White);
+
+	etalepile(&mut frame, mapile);
+
+	windpop.make_resizable(false);
+	windpop.end();
+	windpop.show();
+
+	//res.set_label("A");
+	use std::{thread, time::Duration};
+	thread::spawn(move || loop {
+		let one = Duration::from_secs(1);
+		thread::sleep(one);
+		for n in 0..frame.len() {
+			if let Ok(boo) = rr(&format!("/jsons/{}/estcouché", n)) {
+				if boo.parse().unwrap() {
+					frame[n].deactivate();
+				} else {
+					frame[n].activate();
+				}
+			} else {
+				println!("Erreur connection internet");
+			}
+		}
+		if let Ok(bobo) = rr("/jsons/qr/locked") {
+			if bobo.parse().unwrap() {
+				println!("Transfert en cours...");
+			} else {
+				if let Ok(resp) = rr("/jsons/qr/get") {
+					res.set_label(&resp);
+				} else {
+					println!("Erreur connection internet");
+				}
+			}
+		} else {
+			println!("Erreur connection internet");
+		}
+	});
 }
 
 fn main() {
@@ -406,7 +529,7 @@ fn main() {
 		.center_screen()
 		.with_label("Qui est-ce ?");
 
-	let (mut scrollgrp, mut piles) = mainmaker(s);
+	let (mut scrollgrp, mut piles, j1, j2, url) = mainmaker(s);
 	let (mut menu, check, mut vali, mut compte) = menumaker(s);
 
 	let mut frame: Vec<Frame> = vec![];
@@ -478,8 +601,8 @@ fn main() {
 				}
 				Sauvegarde => {
 					let mut vecrenverse: Vec<bool> = vec![];
-					for n in 0..frame.len() {
-						vecrenverse.push(frame[n].active());
+					for f in &frame {
+						vecrenverse.push(f.active());
 					}
 					let frames: Value = vecrenverse.into();
 					let mut m = serde_json::Map::new();
@@ -489,7 +612,7 @@ fn main() {
 					break;
 				}
 				//Question(n) => toggli[n]^=true,
-				Switch(n) => toggle(&mut frame[n]),
+				Switch(n) => toggle(&mut frame, n),
 				Mode(m) => mode = m,
 				Triche => {
 					if check.value() {
@@ -507,27 +630,64 @@ fn main() {
 					if check.value() {
 						let _ = comm(false, mapile, &mut rli, &mut frame, &mut mode, &mut menu);
 					}
-					res.set_label(if valide(&mut qli, &mut rli, &mut menu, &mut mode) {
-						"Vrai"
-					} else {
-						"Faux"
-					});
+					valide(&mut qli, &mut rli, &mut menu, mode, &mut res);
 				}
 				Etale(num) => {
 					if num != 99 {
 						mapile = &pilesaddr[num];
 					}
-					etalepile(&mut frame, mapile, &mut b);
-					hidevec(&mut piles);
-					compte.show();
-					vali.show();
-					scrollgrp.hide();
-					match loadquestions(&mut menu, s, mapile) {
-						Some((x, y)) => {
-							qli = x;
-							rli = y;
+
+					if *multiplayer.lock().unwrap() {
+						*servme.lock().unwrap() = url.value();
+						*servadv.lock().unwrap() = url.value();
+
+						if j1.is_toggled() {
+							*servme.lock().unwrap() += "/j1";
+							*servadv.lock().unwrap() += "/j2";
+						} else if j2.is_toggled() {
+							*servme.lock().unwrap() += "/j2";
+							*servadv.lock().unwrap() += "/j1";
+						} else {
+							fnerror("Choisissez j1 ou j2");
+							continue;
 						}
-						None => fnerror("json incorrect"),
+						if get(servme.lock().unwrap().to_string()).is_err() {
+							fnerror("Url invalide");
+						} else {
+							windadv(mapile);
+
+							etalepile(&mut frame, mapile);
+							for n in 0..24 {
+								b[n].show();
+							}
+							hidevec(&mut piles);
+							compte.show();
+							vali.show();
+							scrollgrp.hide();
+							match loadquestions(&mut menu, s, mapile) {
+								Some((x, y)) => {
+									qli = x;
+									rli = y;
+								}
+								None => fnerror("json incorrect"),
+							}
+						}
+					} else {
+						etalepile(&mut frame, mapile);
+						for n in 0..24 {
+							b[n].show();
+						}
+						hidevec(&mut piles);
+						compte.show();
+						vali.show();
+						scrollgrp.hide();
+						match loadquestions(&mut menu, s, mapile) {
+							Some((x, y)) => {
+								qli = x;
+								rli = y;
+							}
+							None => fnerror("json incorrect"),
+						}
 					}
 				}
 				Change => {
