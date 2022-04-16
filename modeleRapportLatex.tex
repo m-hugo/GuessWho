@@ -33,20 +33,7 @@ Université de Montpellier.}
 \maketitle                    % Faire un titre utilisant les données
                               % passées à \title, \author et \date
 
-\begin{center}               % pour centrer 
-  \includegraphics[scale=1]{rainette2.jpg}   % insertion d'une image
-\end{center}
-
-\begin{abstract}     % Résumé du travail
-
-  \emph{Description très succinte du problème et des différentes étapes de réalisation}
-
-\end{abstract}
-
-
 \section{ Technologies utilisées  et organisation} % Commencer une section, etc.
-
-\emph{Une page.}
 
 \subsection{Choix du langage}         % Section plus petite
 
@@ -81,7 +68,6 @@ Université de Montpellier.}
 \end{enumerate}
 \section{Étape 1 : permettre à l'utilisateur de jouer}
 
-\emph{3 pages}
 
 \begin{itemize}         
 \item
@@ -116,41 +102,28 @@ Université de Montpellier.}
 \end{verbatim}
  "attrs" contient tout les attributs et toutes les possibilités pour chaque attribut "liste" contient 24 blocs, chacun contenant tous les attributs definis dans "attrs" suivi de "image" avec le chemin de l'image depuis ce dossier ou un chemin absolu
 \newline
-\item
-  Description de la forme des requêtes traitées.
-\item
-  Description des structures de données, classes, variables utilisées.
-\item
-  Description du traitement effectué lors d'une requête.
 \end{itemize}
 
 
 \section{Étape 2 : aider  à la saisie  des personnages}
 
-\emph{2 pages}
-
-\begin{itemize}    
-\item
-  Description du problème : format des données et du résultat.
+\begin{itemize}
 \item
   Scénario des interactions avec l'utilisateur.\\
-  Nous avions prevu de permettre aux utilisateurs de valider les attributs/valeurs avec la touche entrée pour pouvoir en saisir plusieurs à la suite sans utiliser la souris (il est possible de savoir quelle boite à le focus) mais nous n'avons pas reussi
+  Nous avions prevu de permettre aux utilisateurs de valider les attributs/valeurs avec la touche entrée pour pouvoir en saisir plusieurs à la suite sans utiliser la souris (il est possible de savoir quelle boite à le focus) mais nous n'avons pas reussi, la saisie des attributs reste quand meme assez intuitive
 \end{itemize}
 
-\section{Étape 3 : XXXX}
+\section{Étape 3 : Mode Multijoueur}
 
-\emph{5 pages}
+l'extension réalisée est le mode multijoueur: lors du choix du jeu de cartes, le joueur peut cocher un case qui active le mode multijoueur, il n'a plus qu'à rentrer l'ip du serveur, choisir j1 ou j2 et selectioner le même jeu de cartes que son adversaire, une fenetre avec le plateau de l'adversaire s'affiche alors et lors du tour de l'adversaire, je joueur peut voir quelle question il pose et quels personnages il renverse.\\
+Nous avons seulement eu le temps de mettre en place les contraintes necessaires au bon fonctionnement du programme comme l'affichage d'un message d'erreur si l'ip ne pointe pas vers un serveur valide, le programme n'empeche pas à un joueur de poser une seconde question avant que l'autre n'ai pu poser la sienne mais c'est nous supposons que les joueurs respectent les règles du jeu, cela permet egalement de laisser son adversaire poser plusieurs questions pour chaque question qu'il pose lorsqu'il joue contre un enfant par exemple.\\
 
-Description précise de l'extension réalisée - choix éventuels
-
-Description de la résolution (protocole, algorithmes, ... selon l'extension choisie)
-Nous utilisons la methode node.js, le seveur execute differentes fonctions selon le format de l'url utilisée pour y acceder et renvoie une chaine de characteres\\
+Nous utilisons des routes rattachées à des fonctions comme node.js, le seveur execute differentes fonctions selon le format de l'url utilisée pour y acceder et renvoie une chaine de characteres\\
 
 \section{Bilan et Conclusions}
 
-\emph{1 page}
-
-Ce qui a fonctionné, ce qui n'a pas fonctionné, problèmes rencontrés, ...
+L'utilisation de callbacks (add) pour la gestion des evenements boutons n'a pas très bien fonctionné car en rust deux boutons ne peuvent pas écrire dans la meme zone de texte car, sans enrober les variables dans des types complexes, elle ne peuvent être empruntées en lecture en écriture que si elles ne sont pas empruntées en lecture ailleurs \\
+mais après les avoir remplacés par les emmisions de messages (add\_emit) j'ai pu faire un systeme assez elegant: les boutons ecrivent dans des tuyaux et la boucle principale du programme est la seule à effectuer des operations sur les elements en fonction du type du message et de son contenu.
 
 
 
