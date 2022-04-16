@@ -56,6 +56,9 @@ un fichier json valide ressemble à ça:
 ====================================
 
 Pour lancer le serveur
+
 ouvrez un terminal dans le dossier hello-rocket et tapez cargo run
+
 si vous voulez joueur sur une ou plusieurs machine séparées de celle qui execute le serveur, assurer vous d'avoir acces au port 8000
+
 si vous voulez lancer deux clients sur la meme machine vous pouvez juste dupliquer le dossier du projet et faire cargo run dans chaque dossier
